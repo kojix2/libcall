@@ -60,18 +60,18 @@ libcall -lmylib -L./build add 10i32 20i32 -r i32
 
 ## Type Reference
 
-| Suffix | Type | Range/Note |
-|--------|------|------------|
-| `i8` | signed 8-bit | -128 to 127 |
-| `u8` | unsigned 8-bit | 0 to 255 |
-| `i16` | signed 16-bit | -32768 to 32767 |
-| `u16` | unsigned 16-bit | 0 to 65535 |
-| `i32` | signed 32-bit | standard int |
-| `u32` | unsigned 32-bit | unsigned int |
-| `i64` | signed 64-bit | long long |
-| `u64` | unsigned 64-bit | unsigned long long |
-| `f32` | 32-bit float | single precision |
-| `f64` | 64-bit float | double precision |
+| Suffix | Type            | Range/Note         |
+| ------ | --------------- | ------------------ |
+| `i8`   | signed 8-bit    | -128 to 127        |
+| `u8`   | unsigned 8-bit  | 0 to 255           |
+| `i16`  | signed 16-bit   | -32768 to 32767    |
+| `u16`  | unsigned 16-bit | 0 to 65535         |
+| `i32`  | signed 32-bit   | standard int       |
+| `u32`  | unsigned 32-bit | unsigned int       |
+| `i64`  | signed 64-bit   | long long          |
+| `u64`  | unsigned 64-bit | unsigned long long |
+| `f32`  | 32-bit float    | single precision   |
+| `f64`  | 64-bit float    | double precision   |
 
 ## pkg-config Support
 
