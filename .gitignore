@@ -1,0 +1,16 @@
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+
+# Test fixtures build artifacts
+/test/fixtures/**/build/
+/test/fixtures/**/*.pc
+/test/fixtures/**/*.so
+/test/fixtures/**/*.dylib
+
+*.lock
