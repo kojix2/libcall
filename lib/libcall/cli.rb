@@ -14,8 +14,7 @@ module Libcall
         return_type: :void,
         lib: nil,
         lib_name: nil,
-        lib_paths: [],
-        signature: nil
+        lib_paths: []
       }
     end
 
@@ -105,12 +104,6 @@ module Libcall
 
         opts.on('-r', '--ret TYPE', 'Return type (void, i32, f64, cstr, etc.)') do |type|
           @options[:return_type] = Parser.parse_return_type(type)
-        end
-
-        opts.on('--sig SIGNATURE', 'Function signature (e.g., i32(i32,i32))') do |sig|
-          ret, args = Parser.parse_signature(sig)
-          @options[:return_type] = ret
-          @options[:signature_args] = args
         end
 
         opts.on('-h', '--help', 'Show help') do
