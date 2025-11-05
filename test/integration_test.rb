@@ -112,15 +112,18 @@ class IntegrationTest < Test::Unit::TestCase
   end
 
   test 'cstr return from libc getenv' do
-    libc_flag = RUBY_PLATFORM =~ /darwin/ ? '-lsystem' : '-lc'
-    stdout, stderr, success = run_libcall(libc_flag, 'getenv', '"PATH"', '-r', 'cstr')
+    if RUBY_PLATFORM =~ /darwin/
+      stdout, stderr, success = run_libcall('/usr/lib/libSystem.B.dylib', 'getenv', '"PATH"', '-r', 'cstr')
+    else
+      stdout, stderr, success = run_libcall('-lc', 'getenv', '"PATH"', '-r', 'cstr')
+    end
     assert success, "Command should succeed: #{stderr}"
     assert(!stdout.empty?, 'PATH should not be empty')
   end
 
   test 'negative float argument with -- separator and -r before it' do
     if RUBY_PLATFORM =~ /darwin/
-      stdout, stderr, success = run_libcall(LIBM, 'fabs', '--', '-5.5f64', '-r', 'f64')
+      stdout, stderr, success = run_libcall('-r', 'f64', LIBM, 'fabs', '--', '-5.5f64')
     else
       stdout, stderr, success = run_libcall('-lm', '-r', 'f64', 'fabs', '--', '-5.5f64')
     end
