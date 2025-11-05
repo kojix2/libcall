@@ -1,6 +1,7 @@
 # libcall
 
 [![test](https://github.com/kojix2/libcall/actions/workflows/main.yml/badge.svg)](https://github.com/kojix2/libcall/actions/workflows/main.yml)
+[![Gem Version](https://badge.fury.io/rb/libcall.svg)](https://badge.fury.io/rb/libcall)
 [![Lines of Code](https://img.shields.io/endpoint?url=https%3A%2F%2Ftokei.kojix2.net%2Fbadge%2Fgithub%2Fkojix2%2Flibcall%2Flines)](https://tokei.kojix2.net/github/kojix2/libcall)
 
 Call C functions in shared libraries from the command line.
