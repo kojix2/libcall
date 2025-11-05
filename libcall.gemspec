@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.author        = 'kojix2'
   spec.email         = '2xijok@gmail.com'
 
-  spec.files         = Dir['*.{md,txt}', '{exe,lib,sig}/**/*']
+  spec.files         = Dir['*.{md,txt}', '{exe,lib}/**/*']
   spec.require_path  = 'lib'
   spec.bindir        = 'exe'
   spec.executables   = ['libcall']
