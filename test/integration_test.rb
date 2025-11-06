@@ -23,6 +23,15 @@ class IntegrationTest < Test::Unit::TestCase
     [stdout.strip, stderr.strip, status.success?]
   end
 
+  def run_libcall_with_env(extra_env, *args)
+    env = { 'RUBYLIB' => File.join(ROOT, 'lib') }
+    # Allow caller to explicitly control pkg-config visibility
+    env['PKG_CONFIG_PATH'] = ENV['PKG_CONFIG_PATH'] if ENV['PKG_CONFIG_PATH']
+    env.merge!(extra_env)
+    stdout, stderr, status = Open3.capture3(env, 'ruby', LIBCALL, *args, chdir: ROOT)
+    [stdout.strip, stderr.strip, status.success?]
+  end
+
   def pkg_config_available?(pkg)
     begin
       require 'pkg-config'
@@ -149,6 +158,20 @@ class IntegrationTest < Test::Unit::TestCase
     assert(!stdout.empty?, 'PATH should not be empty')
   end
 
+  test "'--' stops option parsing so string value '-r' is allowed" do
+    # Place return type before '--' because anything after is positional-only
+    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+      stdout, stderr, success = run_libcall('-r', 'cstr', 'msvcrt.dll', 'getenv', 'string', '--', '-r')
+    elsif RUBY_PLATFORM =~ /darwin/
+      stdout, stderr, success = run_libcall('-r', 'cstr', LIBM, 'getenv', 'string', '--', '-r')
+    else
+      stdout, stderr, success = run_libcall('-r', 'cstr', '-lc', 'getenv', 'string', '--', '-r')
+    end
+    assert success, "Command should succeed: #{stderr}"
+    # getenv('-r') is expected to be unset; cstr formatter prints (null)
+    assert_equal '(null)', stdout
+  end
+
   test 'pkg-config package name via -l resolves library' do
     omit('pkg-config binary or package not available in environment') unless pkg_config_available?('libtest')
     omit('fixture shared library is not available') unless fixture_lib_available?
@@ -156,5 +179,26 @@ class IntegrationTest < Test::Unit::TestCase
     stdout, stderr, success = run_libcall('-llibtest', 'add_i32', 'int', '10', 'int', '20', '-r', 'i32')
     assert success, "Command should succeed: #{stderr}"
     assert_equal '30', stdout
+  end
+
+  test 'library search via env var (LD_LIBRARY_PATH/DYLD_LIBRARY_PATH)' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    require 'tmpdir'
+    Dir.mktmpdir do |dir|
+      # Copy the built fixture library into a temp directory
+      FileUtils.cp(fixture_lib_path, File.join(dir, File.basename(fixture_lib_path)))
+
+      if RUBY_PLATFORM =~ /darwin/
+        env = { 'DYLD_LIBRARY_PATH' => dir, 'PKG_CONFIG_PATH' => '' }
+      elsif RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+        omit('LD_LIBRARY_PATH/DYLD_LIBRARY_PATH not applicable on Windows')
+      else
+        env = { 'LD_LIBRARY_PATH' => dir, 'PKG_CONFIG_PATH' => '' }
+      end
+
+      stdout, stderr, success = run_libcall_with_env(env, '-ltest', 'add_i32', 'int', '10', 'int', '20', '-r', 'i32')
+      assert success, "Command should succeed: #{stderr}"
+      assert_equal '30', stdout
+    end
   end
 end

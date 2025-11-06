@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'optparse'
 require 'json'
 
 module Libcall
@@ -30,7 +29,7 @@ module Libcall
 
       if lib_path.nil? || func_name.nil?
         warn 'Error: Missing required arguments'
-        warn 'Usage: libcall [OPTIONS] <LIBRARY> <FUNCTION> [(TYPE VALUE) | ARG]...'
+        warn 'Usage: libcall [OPTIONS] <LIBRARY> <FUNCTION> (TYPE VALUE)...'
         exit 1
       end
 
@@ -68,7 +67,7 @@ module Libcall
         Examples:
           libcall -lm -r f64 sqrt double 16
           libcall -ltest -L ./build add_i32 int 10 int -23 -r int
-          libcall --dry-run ./mylib.so test 42u64 -r void
+          libcall --dry-run ./mylib.so test u64 42 -r void
 
         Options:
       BANNER
@@ -83,21 +82,25 @@ module Libcall
       func_name = nil
       arg_pairs = []
 
+      positional_only = false
       i = 0
       while i < argv.length
         tok = argv[i]
 
-        # End-of-options marker: everything that follows is treated as TYPE VALUE pairs
+        # End-of-options marker: switch to positional-only mode
         if tok == '--'
+          positional_only = true
           i += 1
-          break
+          next
         end
 
-        # Try to handle as a known option
-        option_consumed = handle_option!(tok, argv, i)
-        if option_consumed > 0
-          i += option_consumed
-          next
+        # Try to handle as a known option (only if not in positional-only mode)
+        unless positional_only
+          option_consumed = handle_option!(tok, argv, i)
+          if option_consumed > 0
+            i += option_consumed
+            next
+          end
         end
 
         # Positional resolution for <LIBRARY> and <FUNCTION>
@@ -116,6 +119,13 @@ module Libcall
         # After function name: parse TYPE VALUE pairs
         type_tok = tok
         i += 1
+
+        # Allow `--` between TYPE and VALUE to switch to positional-only
+        while i < argv.length && argv[i] == '--'
+          positional_only = true
+          i += 1
+        end
+
         raise Error, "Missing value for argument of type #{type_tok}" if i >= argv.length
 
         value_tok = argv[i]
