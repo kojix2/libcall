@@ -27,6 +27,7 @@ module Libcall
       'void' => :void,
       # Common C type names
       'char' => :char,
+      'uchar' => :uchar,
       'short' => :short,
       'ushort' => :ushort,
       'int' => :int,
@@ -35,6 +36,16 @@ module Libcall
       'ulong' => :ulong,
       'float' => :float,
       'double' => :double,
+      # Underscored variants
+      'unsigned_char' => :uchar,
+      'unsigned_short' => :ushort,
+      'unsigned_int' => :uint,
+      'unsigned_long' => :ulong,
+      'long_long' => :long_long,
+      'unsigned_long_long' => :ulong_long,
+      # Short aliases
+      'unsigned' => :uint,
+      'signed' => :int,
       # Extended type names (stdint-like)
       'int8' => :char,
       'uint8' => :uchar,
@@ -46,6 +57,15 @@ module Libcall
       'uint64' => :ulong_long,
       'float32' => :float,
       'float64' => :double,
+      # C99/C11 standard types with _t suffix
+      'int8_t' => :char,
+      'uint8_t' => :uchar,
+      'int16_t' => :short,
+      'uint16_t' => :ushort,
+      'int32_t' => :int,
+      'uint32_t' => :uint,
+      'int64_t' => :long_long,
+      'uint64_t' => :ulong_long,
       # Size and pointer-sized integers
       'size_t' => :ulong,
       'ssize_t' => :long,
