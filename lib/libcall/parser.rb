@@ -25,40 +25,16 @@ module Libcall
       'float' => :float,
       'double' => :double,
       'char' => :char,
-      'str' => :string
+      'str' => :string,
+      'string' => :string
     }.freeze
 
-    def self.parse_arg(arg)
-      return [:string, ''] if arg.empty?
+    # Pair-only API helpers
+    def self.parse_type(type_str)
+      type_sym = TYPE_MAP[type_str]
+      raise Error, "Unknown type: #{type_str}" unless type_sym
 
-      if (arg.start_with?('"') && arg.end_with?('"')) ||
-         (arg.start_with?("'") && arg.end_with?("'"))
-        return [:string, arg[1...-1]]
-      end
-
-      if arg =~ /^([-+]?(?:\d+\.?\d*|\d*\.\d+))([a-z]\d+|[a-z]+)$/i
-        value_str = ::Regexp.last_match(1)
-        type_str = ::Regexp.last_match(2)
-
-        type_sym = TYPE_MAP[type_str]
-        raise Error, "Unknown type suffix: #{type_str}" unless type_sym
-
-        value = if %i[float double].include?(type_sym)
-                  value_str.to_f
-                else
-                  value_str.to_i
-                end
-
-        return [type_sym, value]
-      end
-
-      if arg =~ /^[-+]?\d+$/
-        [:int, arg.to_i]
-      elsif arg =~ /^[-+]?(?:\d+\.\d*|\d*\.\d+)$/
-        [:double, arg.to_f]
-      else
-        raise Error, "Cannot parse argument: #{arg}"
-      end
+      type_sym
     end
 
     def self.parse_return_type(type_str)
@@ -70,14 +46,26 @@ module Libcall
       type_sym
     end
 
-    def self.parse_signature(sig)
-      raise Error, "Invalid signature format: #{sig}" unless sig =~ /^([a-z]\w*)\((.*)\)$/i
-
-      ret_type = parse_return_type(::Regexp.last_match(1))
-      arg_types = ::Regexp.last_match(2).split(',').map(&:strip).reject(&:empty?).map do |t|
-        TYPE_MAP[t] or raise Error, "Unknown type in signature: #{t}"
+    def self.coerce_value(type_sym, token)
+      case type_sym
+      when :float, :double
+        Float(token)
+      when :int, :uint, :long, :ulong, :long_long, :ulong_long, :char, :uchar, :short, :ushort
+        Integer(token)
+      when :voidp
+        Integer(token)
+      when :string
+        # Strip surrounding quotes if present
+        if (token.start_with?('"') && token.end_with?('"')) || (token.start_with?("'") && token.end_with?("'"))
+          token[1...-1]
+        else
+          token
+        end
+      when :void
+        raise Error, 'void cannot be used as an argument type'
+      else
+        raise Error, "Unknown type for coercion: #{type_sym}"
       end
-      [ret_type, arg_types]
     end
 
     def self.fiddle_type(type_sym)

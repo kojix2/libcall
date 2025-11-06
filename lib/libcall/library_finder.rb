@@ -68,18 +68,16 @@ module Libcall
         # Windows paths
         paths << 'C:/Windows/System32'
         paths << 'C:/Windows/SysWOW64'
-        
+
         # MSYS2/MinGW paths
         if ENV['MSYSTEM']
           msys_prefix = ENV['MINGW_PREFIX'] || 'C:/msys64/mingw64'
           paths << "#{msys_prefix}/bin"
           paths << "#{msys_prefix}/lib"
         end
-        
+
         # Add PATH directories on Windows
-        if ENV['PATH']
-          paths.concat(ENV['PATH'].split(';').map { |p| p.tr('\\', '/') })
-        end
+        paths.concat(ENV['PATH'].split(';').map { |p| p.tr('\\', '/') }) if ENV['PATH']
       else
         # Unix-like systems (Linux, macOS)
         # Standard library paths
@@ -127,7 +125,7 @@ module Libcall
                    else
                      ['', '.so', '.a']
                    end
-      
+
       prefixes = lib_name.start_with?('lib') ? [''] : ['lib', '']
 
       prefixes.each do |prefix|

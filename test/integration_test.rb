@@ -54,19 +54,19 @@ class IntegrationTest < Test::Unit::TestCase
   end
 
   test 'calling sqrt function' do
-    stdout, stderr, success = run_libcall(LIBM, 'sqrt', '16.0f64', '-r', 'f64')
+    stdout, stderr, success = run_libcall(LIBM, 'sqrt', 'double', '16.0', '-r', 'f64')
     assert success, "Command should succeed: #{stderr}"
     assert_equal '4.0', stdout
   end
 
   test 'calling cos function' do
-    stdout, stderr, success = run_libcall(LIBM, 'cos', '0.0f64', '-r', 'f64')
+    stdout, stderr, success = run_libcall(LIBM, 'cos', 'double', '0.0', '-r', 'f64')
     assert success, "Command should succeed: #{stderr}"
     assert_equal '1.0', stdout
   end
 
   test 'dry run mode' do
-    stdout, stderr, success = run_libcall('--dry-run', LIBM, 'sqrt', '25.0f64', '-r', 'f64')
+    stdout, stderr, success = run_libcall('--dry-run', LIBM, 'sqrt', 'double', '25.0', '-r', 'f64')
     assert success, "Command should succeed: #{stderr}"
     assert_match(/Library:/, stdout)
     assert_match(/sqrt/, stdout)
@@ -74,7 +74,7 @@ class IntegrationTest < Test::Unit::TestCase
   end
 
   test 'json output' do
-    stdout, stderr, success = run_libcall('--json', LIBM, 'sqrt', '9.0f64', '-r', 'f64')
+    stdout, stderr, success = run_libcall('--json', LIBM, 'sqrt', 'double', '9.0', '-r', 'f64')
     assert success, "Command should succeed: #{stderr}"
 
     result = JSON.parse(stdout)
@@ -102,11 +102,9 @@ class IntegrationTest < Test::Unit::TestCase
   end
 
   test 'library search with -l flag' do
-    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
-      omit('skipping -lm test on Windows; use msvcrt.dll directly')
-    end
+    omit('skipping -lm test on Windows; use msvcrt.dll directly') if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
     omit('libm is not a standalone library on macOS; use full path tests instead') if RUBY_PLATFORM =~ /darwin/
-    stdout, stderr, success = run_libcall('-lm', 'sqrt', '16.0f64', '-r', 'f64')
+    stdout, stderr, success = run_libcall('-lm', 'sqrt', 'double', '16.0', '-r', 'f64')
     assert success, "Command should succeed: #{stderr}"
     assert_equal '4.0', stdout
   end
@@ -114,40 +112,48 @@ class IntegrationTest < Test::Unit::TestCase
   test 'library search with -L flag' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'), 'add_i32',
-                                          '10i32', '20i32', '-r', 'i32')
+                                          'int', '10', 'int', '20', '-r', 'i32')
     assert success, "Command should succeed: #{stderr}"
     assert_equal '30', stdout
   end
 
-  test 'cstr return from libc getenv' do
-    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
-      stdout, stderr, success = run_libcall('msvcrt.dll', 'getenv', '"PATH"', '-r', 'cstr')
-    elsif RUBY_PLATFORM =~ /darwin/
-      stdout, stderr, success = run_libcall('/usr/lib/libSystem.B.dylib', 'getenv', '"PATH"', '-r', 'cstr')
-    else
-      stdout, stderr, success = run_libcall('-lc', 'getenv', '"PATH"', '-r', 'cstr')
-    end
+  test 'pair format: add_i32 with negative int value and -r after function' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'), 'add_i32',
+                                          'int', '32', 'int', '-23', '-r', 'int')
     assert success, "Command should succeed: #{stderr}"
-    assert(!stdout.empty?, 'PATH should not be empty')
+    assert_equal '9', stdout
   end
 
-  test 'negative float argument with -- separator and -r before it' do
+  test 'pair format: fabs with negative double' do
     if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
-      stdout, stderr, success = run_libcall('-r', 'f64', 'msvcrt.dll', 'fabs', '--', '-5.5f64')
+      stdout, stderr, success = run_libcall('-r', 'f64', 'msvcrt.dll', 'fabs', 'double', '-5.5')
     elsif RUBY_PLATFORM =~ /darwin/
-      stdout, stderr, success = run_libcall('-r', 'f64', LIBM, 'fabs', '--', '-5.5f64')
+      stdout, stderr, success = run_libcall('-r', 'f64', LIBM, 'fabs', 'double', '-5.5')
     else
-      stdout, stderr, success = run_libcall('-lm', '-r', 'f64', 'fabs', '--', '-5.5f64')
+      stdout, stderr, success = run_libcall('-lm', '-r', 'f64', 'fabs', 'double', '-5.5')
     end
     assert success, "Command should succeed: #{stderr}"
     assert_equal '5.5', stdout
+  end
+
+  test 'cstr return from libc getenv' do
+    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+      stdout, stderr, success = run_libcall('msvcrt.dll', 'getenv', 'string', '"PATH"', '-r', 'cstr')
+    elsif RUBY_PLATFORM =~ /darwin/
+      stdout, stderr, success = run_libcall('/usr/lib/libSystem.B.dylib', 'getenv', 'string', '"PATH"', '-r', 'cstr')
+    else
+      stdout, stderr, success = run_libcall('-lc', 'getenv', 'string', '"PATH"', '-r', 'cstr')
+    end
+    assert success, "Command should succeed: #{stderr}"
+    assert(!stdout.empty?, 'PATH should not be empty')
   end
 
   test 'pkg-config package name via -l resolves library' do
     omit('pkg-config binary or package not available in environment') unless pkg_config_available?('libtest')
     omit('fixture shared library is not available') unless fixture_lib_available?
     # Here -llibtest indicates the package name; LibraryFinder uses pkg-config
-    stdout, stderr, success = run_libcall('-llibtest', 'add_i32', '10i32', '20i32', '-r', 'i32')
+    stdout, stderr, success = run_libcall('-llibtest', 'add_i32', 'int', '10', 'int', '20', '-r', 'i32')
     assert success, "Command should succeed: #{stderr}"
     assert_equal '30', stdout
   end

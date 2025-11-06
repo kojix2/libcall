@@ -10,29 +10,20 @@ class LibcallTest < Test::Unit::TestCase
   end
 
   test 'parser parses rust-style integers' do
-    type, value = Libcall::Parser.parse_arg('42i32')
-    assert_equal :int, type
-    assert_equal 42, value
-
-    type, value = Libcall::Parser.parse_arg('100u64')
-    assert_equal :ulong_long, type
-    assert_equal 100, value
+    assert_equal :int, Libcall::Parser.parse_type('i32')
+    assert_equal :ulong_long, Libcall::Parser.parse_type('u64')
   end
 
   test 'parser parses floats' do
-    type, value = Libcall::Parser.parse_arg('3.14f64')
-    assert_equal :double, type
-    assert_in_delta 3.14, value, 0.001
-
-    type, value = Libcall::Parser.parse_arg('2.5f32')
-    assert_equal :float, type
-    assert_in_delta 2.5, value, 0.001
+    assert_equal :double, Libcall::Parser.parse_type('f64')
+    assert_in_delta 3.14, Libcall::Parser.coerce_value(:double, '3.14'), 0.001
+    assert_equal :float, Libcall::Parser.parse_type('f32')
+    assert_in_delta 2.5, Libcall::Parser.coerce_value(:float, '2.5'), 0.001
   end
 
   test 'parser parses strings' do
-    type, value = Libcall::Parser.parse_arg('"hello"')
-    assert_equal :string, type
-    assert_equal 'hello', value
+    assert_equal :string, Libcall::Parser.parse_type('cstr')
+    assert_equal 'hello', Libcall::Parser.coerce_value(:string, '"hello"')
   end
 
   test 'parser parses return type' do

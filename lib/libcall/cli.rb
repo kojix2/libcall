@@ -19,27 +19,17 @@ module Libcall
     end
 
     def run
-      parse_options!
+      lib_path, func_name, arg_pairs = scan_argv!(@argv)
 
-      if @argv.empty?
-        puts @parser.help
-        exit 1
-      end
-
-      # Resolve library path
+      # Resolve library path if a library name (-l) was given
       if @options[:lib_name]
         finder = LibraryFinder.new(lib_paths: @options[:lib_paths])
         lib_path = finder.find(@options[:lib_name])
-      else
-        lib_path = @options[:lib] || @argv.shift
       end
-
-      func_name = @argv.shift
-      args = @argv
 
       if lib_path.nil? || func_name.nil?
         warn 'Error: Missing required arguments'
-        warn 'Usage: libcall <LIBRARY> <FUNCTION> [ARGS...]'
+        warn 'Usage: libcall [OPTIONS] <LIBRARY> <FUNCTION> [(TYPE VALUE) | ARG]...'
         exit 1
       end
 
@@ -51,9 +41,9 @@ module Libcall
       end
 
       if @options[:dry_run]
-        dry_run_info(lib_path, func_name, args)
+        dry_run_info(lib_path, func_name, arg_pairs)
       else
-        execute_call(lib_path, func_name, args)
+        execute_call(lib_path, func_name, arg_pairs)
       end
     rescue Error => e
       warn "Error: #{e.message}"
@@ -66,61 +56,126 @@ module Libcall
 
     private
 
-    def parse_options!
-      @parser = OptionParser.new do |opts|
-        opts.banner = <<~BANNER
-          Usage: libcall [OPTIONS] <LIBRARY> <FUNCTION> [ARGS...]
+    def parse_options_banner
+      <<~BANNER
+        Usage: libcall [OPTIONS] <LIBRARY> <FUNCTION> (TYPE VALUE)...
 
-          Call C functions in shared libraries from the command line.
+        Call C functions in shared libraries from the command line.
 
-          Examples:
-            libcall /lib/libm.so.6 sqrt 16.0f64 -r f64
-            libcall -lm sqrt 16.0f64 -r f64
-            libcall -lsum -L. add 10i32 20i32 -r i32
-            libcall --dry-run ./mylib.so test 42u64 -r void
+        Pass arguments as TYPE VALUE pairs only.
 
-          Options:
-        BANNER
+        Examples:
+          libcall -lm -r f64 sqrt double 16
+          libcall -ltest -L ./build add_i32 int 10 int -23 -r int
+          libcall --dry-run ./mylib.so test 42u64 -r void
 
-        opts.on('--dry-run', 'Validate arguments without executing') do
-          @options[:dry_run] = true
-        end
-
-        opts.on('--json', 'Output result as JSON') do
-          @options[:json] = true
-        end
-
-        opts.on('--verbose', 'Show detailed information') do
-          @options[:verbose] = true
-        end
-
-        opts.on('-l', '--lib LIBRARY', 'Library name (searches in standard paths)') do |lib|
-          @options[:lib_name] = lib
-        end
-
-        opts.on('-L', '--lib-path PATH', 'Add library search path') do |path|
-          @options[:lib_paths] << path
-        end
-
-        opts.on('-r', '--ret TYPE', 'Return type (void, i32, f64, cstr, etc.)') do |type|
-          @options[:return_type] = Parser.parse_return_type(type)
-        end
-
-        opts.on('-h', '--help', 'Show help') do
-          puts opts
-          exit
-        end
-
-        opts.on('-v', '--version', 'Show version') do
-          puts "libcall #{Libcall::VERSION}"
-          exit
-        end
-      end
-
-      @parser.permute!(@argv)
+        Options:
+      BANNER
     end
 
-    def dry_run_info(lib_path, func_name, args)
+    # Custom scanner that supports:
+    # - Known flags anywhere (before/after function name)
+    # - Negative numbers as values (not mistaken for options)
+    # - TYPE VALUE pairs and legacy single-token args mixed
+    def scan_argv!(argv)
+      lib_path = nil
+      func_name = nil
+      arg_pairs = []
+
+      i = 0
+      while i < argv.length
+        tok = argv[i]
+
+        # End-of-options marker: everything that follows becomes a raw arg token
+        if tok == '--'
+          i += 1
+          while i < argv.length
+            args_tokens << argv[i]
+            i += 1
+          end
+          break
+        end
+
+        # Global flags (allowed anywhere)
+        case tok
+        when '--dry-run'
+          @options[:dry_run] = true
+          i += 1
+          next
+        when '--json'
+          @options[:json] = true
+          i += 1
+          next
+        when '--verbose'
+          @options[:verbose] = true
+          i += 1
+          next
+        when '-h', '--help'
+          puts parse_options_banner
+          exit 0
+        when '-v', '--version'
+          puts "libcall #{Libcall::VERSION}"
+          exit 0
+        when '-l', '--lib'
+          i += 1
+          raise Error, 'Missing value for -l/--lib' if i >= argv.length
+
+          @options[:lib_name] = argv[i]
+          i += 1
+          next
+        when /\A-l(.+)\z/
+          @options[:lib_name] = ::Regexp.last_match(1)
+          i += 1
+          next
+        when '-L', '--lib-path'
+          i += 1
+          raise Error, 'Missing value for -L/--lib-path' if i >= argv.length
+
+          @options[:lib_paths] << argv[i]
+          i += 1
+          next
+        when '-r', '--ret'
+          i += 1
+          raise Error, 'Missing value for -r/--ret' if i >= argv.length
+
+          @options[:return_type] = Parser.parse_return_type(argv[i])
+          i += 1
+          next
+        when /\A-r(.+)\z/
+          @options[:return_type] = Parser.parse_return_type(::Regexp.last_match(1))
+          i += 1
+          next
+        end
+
+        # Positional resolution for <LIBRARY> and <FUNCTION>
+        if lib_path.nil? && @options[:lib_name].nil?
+          lib_path = tok
+          i += 1
+          next
+        end
+
+        if func_name.nil?
+          func_name = tok
+          i += 1
+          next
+        end
+
+        # After function name: parse TYPE VALUE pairs, allowing options anywhere
+        type_tok = tok
+        i += 1
+        raise Error, "Missing value for argument of type #{type_tok}" if i >= argv.length
+
+        value_tok = argv[i]
+        type_sym = Parser.parse_type(type_tok)
+        value = Parser.coerce_value(type_sym, value_tok)
+        arg_pairs << [type_sym, value]
+        i += 1
+      end
+
+      [lib_path, func_name, arg_pairs]
+    end
+
+    def dry_run_info(lib_path, func_name, arg_pairs)
       info = {
         library: lib_path,
         function: func_name,
@@ -128,11 +183,9 @@ module Libcall
         return_type: @options[:return_type].to_s
       }
 
-      args.each_with_index do |arg, i|
-        type_sym, value = Parser.parse_arg(arg)
+      arg_pairs.each_with_index do |(type_sym, value), i|
         info[:arguments] << {
           index: i,
-          raw: arg,
           type: type_sym.to_s,
           value: value
         }
@@ -147,17 +200,17 @@ module Libcall
         unless info[:arguments].empty?
           puts 'Arguments:'
           info[:arguments].each do |arg|
-            puts "  [#{arg[:index]}] #{arg[:raw]} => #{arg[:type]} (#{arg[:value].inspect})"
+            puts "  [#{arg[:index]}] #{arg[:type]} = #{arg[:value].inspect}"
           end
         end
       end
     end
 
-    def execute_call(lib_path, func_name, args)
+    def execute_call(lib_path, func_name, arg_pairs)
       caller = Caller.new(
         lib_path,
         func_name,
-        args: args,
+        arg_pairs: arg_pairs,
         return_type: @options[:return_type]
       )
 

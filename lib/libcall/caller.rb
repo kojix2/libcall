@@ -4,21 +4,20 @@ require 'fiddle'
 
 module Libcall
   class Caller
-    attr_reader :lib_path, :func_name, :return_type, :args
+    attr_reader :lib_path, :func_name, :return_type, :arg_pairs
 
-    def initialize(lib_path, func_name, args: [], return_type: :void)
+    def initialize(lib_path, func_name, arg_pairs: [], return_type: :void)
       @lib_path = lib_path
       @func_name = func_name
       @return_type = return_type
-      @args = args
+      @arg_pairs = arg_pairs
     end
 
     def call
       arg_types = []
       arg_values = []
 
-      args.each do |arg|
-        type_sym, value = Parser.parse_arg(arg)
+      arg_pairs.each do |type_sym, value|
         arg_types << Parser.fiddle_type(type_sym)
         arg_values << value
       end

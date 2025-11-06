@@ -17,34 +17,34 @@ gem install libcall
 ## Usage
 
 ```sh
-libcall [OPTIONS] <LIBRARY> <FUNCTION> [ARGS...]
+libcall [OPTIONS] <LIBRARY> <FUNCTION> (TYPE VALUE)...
 ```
 
 ### Quick Examples
 
 ```sh
-# Math function with type suffix
-libcall -lm sqrt 16.0f64 -r f64
+# TYPE VALUE pairs
+libcall -lm -r f64 sqrt double 16
 # => 4.0
 
 # Custom library
-libcall ./mylib.so add 10i32 20i32 -r i32
+libcall ./mylib.so add_i32 int 10 int 20 -r i32
 # => 30
 ```
 
-### Type Syntax
+### Argument Syntax
 
-Use Rust-style type suffixes:
+Pass arguments as TYPE VALUE pairs (single-token suffix style has been removed):
 
-- Integers: `42i32`, `100u64`, `255u8`
-- Floats: `3.14f64`, `2.5f32`
-- Strings: `"hello"`
+- Examples: `int 10`, `double -3.14`, `string "hello"`
+- Negative values are safe (not treated as options): `int -23`
 
 ### Options
 
 - `-l LIBRARY` - library name (searches standard paths)
 - `-L PATH` - add library search path
 - `-r TYPE` - return type (void, i32, f64, cstr, ptr)
+- Options may appear before or after the function name.
 - `--dry-run` - validate without executing
 - `--json` - JSON output
 - `--verbose` - detailed info
@@ -55,20 +55,24 @@ Use Rust-style type suffixes:
 
 ```sh
 # JSON output
-libcall --json -lm sqrt 9.0f64 -r f64
+libcall --json -lm sqrt double 9.0 -r f64
 
 # Dry run
-libcall --dry-run ./mylib.so test 42i32 -r void
+libcall --dry-run ./mylib.so test u64 42 -r void
 
 # Using -L and -l (like gcc)
-libcall -lmylib -L./build add 10i32 20i32 -r i32
+libcall -lmylib -L./build add_i32 int 10 int 20 -r i32
+
+# TYPE/VALUE pairs with -r after function
+libcall -lm fabs double -5.5 -r f64
+# => 5.5
 
 # Windows: calling C runtime functions
-libcall msvcrt.dll sqrt 16.0f64 -r f64
+libcall msvcrt.dll sqrt double 16.0 -r f64
 # => 4.0
 
 # Windows: accessing environment variables
-libcall msvcrt.dll getenv "PATH" -r cstr
+libcall msvcrt.dll getenv string "PATH" -r cstr
 ```
 
 ## Type Reference
