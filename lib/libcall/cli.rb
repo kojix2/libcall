@@ -264,18 +264,16 @@ module Libcall
         end
 
         puts JSON.pretty_generate(output, allow_nan: true)
-      else
-        if result.is_a?(Hash) && result.key?(:outputs)
-          puts "Result: #{result[:result]}" unless result[:result].nil?
-          unless result[:outputs].empty?
-            puts 'Output parameters:'
-            result[:outputs].each do |out|
-              puts "  [#{out[:index]}] #{out[:type]} = #{out[:value]}"
-            end
+      elsif result.is_a?(Hash) && result.key?(:outputs)
+        puts "Result: #{result[:result]}" unless result[:result].nil?
+        unless result[:outputs].empty?
+          puts 'Output parameters:'
+          result[:outputs].each do |out|
+            puts "  [#{out[:index]}] #{out[:type]} = #{out[:value]}"
           end
-        else
-          puts result unless result.nil?
         end
+      else
+        puts result unless result.nil?
       end
     end
   end

@@ -42,6 +42,7 @@ module Libcall
         inner = type_str.sub(/^out:/, '')
         inner_sym = TYPE_MAP[inner]
         raise Error, "Unknown type in out: #{inner}" unless inner_sym
+
         return [:out, inner_sym]
       end
 
