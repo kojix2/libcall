@@ -70,6 +70,14 @@ module Libcall
           libcall --dry-run ./mylib.so test u64 42 -r void
 
         Options:
+          -l, --lib LIBRARY          Library name to search for (e.g., -lm for libm)
+          -L, --lib-path PATH        Add directory to library search path
+          -r, --ret TYPE             Return type (default: void)
+              --dry-run              Show what would be executed without calling
+              --json                 Output result in JSON format
+              --verbose              Show detailed information
+          -h, --help                 Show this help message
+          -v, --version              Show version information
       BANNER
     end
 
