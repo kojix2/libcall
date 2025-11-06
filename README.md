@@ -116,9 +116,9 @@ libcall msvcrt.dll getenv string "PATH" -r cstr
 
 Also supported:
 
-- `string`: C string argument (char*)
-- `cstr`: C string return (char*)
-- `ptr`/`pointer`: void* pointer
+- `string`: C string argument (char\*)
+- `cstr`: C string return (char\*)
+- `ptr`/`pointer`: void\* pointer
 
 ## pkg-config Support
 
