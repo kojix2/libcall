@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require_relative 'platform'
 
 module Libcall
   # Command-line interface for calling C functions from shared libraries
@@ -75,9 +76,9 @@ module Libcall
     private
 
     def parse_options_banner
-      examples = if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+      examples = if Platform.windows?
                    PLATFORM_EXAMPLES[:windows]
-                 elsif RUBY_PLATFORM =~ /darwin/
+                 elsif Platform.darwin?
                    PLATFORM_EXAMPLES[:darwin]
                  else
                    PLATFORM_EXAMPLES[:unix]
