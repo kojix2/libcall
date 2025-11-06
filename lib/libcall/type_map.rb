@@ -149,6 +149,7 @@ module Libcall
       when :string
         addr = ptr[0, Fiddle::SIZEOF_VOIDP].unpack1('J')
         return '(null)' if addr.zero?
+
         begin
           Fiddle::Pointer.new(addr).to_s
         rescue StandardError
