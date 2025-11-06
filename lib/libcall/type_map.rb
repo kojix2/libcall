@@ -46,6 +46,16 @@ module Libcall
       'uint64' => :ulong_long,
       'float32' => :float,
       'float64' => :double,
+      # Size and pointer-sized integers
+      'size_t' => :ulong,
+      'ssize_t' => :long,
+      'intptr' => :long,
+      'uintptr' => :ulong,
+      'intptr_t' => :long,
+      'uintptr_t' => :ulong,
+      'ptrdiff_t' => :long,
+      # Boolean
+      'bool' => :int,
       # String aliases
       'str' => :string,
       'string' => :string
@@ -97,6 +107,56 @@ module Libcall
       when :voidp, :string then Fiddle::TYPE_VOIDP
       else
         raise Error, "Unknown Fiddle type: #{type_sym}"
+      end
+    end
+
+    # Get the size in bytes for a type symbol
+    def self.sizeof(type_sym)
+      case type_sym
+      when :char, :uchar then Fiddle::SIZEOF_CHAR
+      when :short, :ushort then Fiddle::SIZEOF_SHORT
+      when :int, :uint then Fiddle::SIZEOF_INT
+      when :long, :ulong then Fiddle::SIZEOF_LONG
+      when :long_long, :ulong_long then Fiddle::SIZEOF_LONG_LONG
+      when :float then Fiddle::SIZEOF_FLOAT
+      when :double then Fiddle::SIZEOF_DOUBLE
+      when :voidp, :string then Fiddle::SIZEOF_VOIDP
+      else
+        raise Error, "Cannot get size for type: #{type_sym}"
+      end
+    end
+
+    # Allocate a pointer for output parameter
+    def self.allocate_output_pointer(type_sym)
+      Fiddle::Pointer.malloc(sizeof(type_sym))
+    end
+
+    # Read value from output pointer
+    def self.read_output_pointer(ptr, type_sym)
+      case type_sym
+      when :char then ptr[0, Fiddle::SIZEOF_CHAR].unpack1('c')
+      when :uchar then ptr[0, Fiddle::SIZEOF_CHAR].unpack1('C')
+      when :short then ptr[0, Fiddle::SIZEOF_SHORT].unpack1('s')
+      when :ushort then ptr[0, Fiddle::SIZEOF_SHORT].unpack1('S')
+      when :int then ptr[0, Fiddle::SIZEOF_INT].unpack1('i')
+      when :uint then ptr[0, Fiddle::SIZEOF_INT].unpack1('I')
+      when :long then ptr[0, Fiddle::SIZEOF_LONG].unpack1('l!')
+      when :ulong then ptr[0, Fiddle::SIZEOF_LONG].unpack1('L!')
+      when :long_long then ptr[0, Fiddle::SIZEOF_LONG_LONG].unpack1('q')
+      when :ulong_long then ptr[0, Fiddle::SIZEOF_LONG_LONG].unpack1('Q')
+      when :float then ptr[0, Fiddle::SIZEOF_FLOAT].unpack1('f')
+      when :double then ptr[0, Fiddle::SIZEOF_DOUBLE].unpack1('d')
+      when :string
+        addr = ptr[0, Fiddle::SIZEOF_VOIDP].unpack1('J')
+        return '(null)' if addr.zero?
+        begin
+          Fiddle::Pointer.new(addr).to_s
+        rescue StandardError
+          format('0x%x', addr)
+        end
+      when :voidp then format('0x%x', ptr[0, Fiddle::SIZEOF_VOIDP].unpack1('J'))
+      else
+        raise Error, "Cannot read output value for type: #{type_sym}"
       end
     end
   end

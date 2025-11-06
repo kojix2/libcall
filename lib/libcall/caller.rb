@@ -24,7 +24,7 @@ module Libcall
 
         if type_sym.is_a?(Array) && type_sym.first == :out
           inner = type_sym[1]
-          ptr = allocate_output_pointer(inner)
+          ptr = TypeMap.allocate_output_pointer(inner)
           out_refs << { index: idx, type: inner, ptr: ptr }
           arg_values << ptr.to_i
         else
@@ -74,42 +74,9 @@ module Libcall
       end
     end
 
-    def allocate_output_pointer(type_sym)
-      size = case type_sym
-             when :char, :uchar then Fiddle::SIZEOF_CHAR
-             when :short, :ushort then Fiddle::SIZEOF_SHORT
-             when :int, :uint then Fiddle::SIZEOF_INT
-             when :long, :ulong then Fiddle::SIZEOF_LONG
-             when :long_long, :ulong_long then Fiddle::SIZEOF_LONG_LONG
-             when :float then Fiddle::SIZEOF_FLOAT
-             when :double then Fiddle::SIZEOF_DOUBLE
-             when :voidp then Fiddle::SIZEOF_VOIDP
-             else
-               raise Error, "Cannot allocate output pointer for type: #{type_sym}"
-             end
-      Fiddle::Pointer.malloc(size)
-    end
-
     def read_output_values(out_refs)
       out_refs.map do |ref|
-        value = case ref[:type]
-                when :char then ref[:ptr][0, Fiddle::SIZEOF_CHAR].unpack1('c')
-                when :uchar then ref[:ptr][0, Fiddle::SIZEOF_CHAR].unpack1('C')
-                when :short then ref[:ptr][0, Fiddle::SIZEOF_SHORT].unpack1('s')
-                when :ushort then ref[:ptr][0, Fiddle::SIZEOF_SHORT].unpack1('S')
-                when :int then ref[:ptr][0, Fiddle::SIZEOF_INT].unpack1('i')
-                when :uint then ref[:ptr][0, Fiddle::SIZEOF_INT].unpack1('I')
-                when :long then ref[:ptr][0, Fiddle::SIZEOF_LONG].unpack1('l!')
-                when :ulong then ref[:ptr][0, Fiddle::SIZEOF_LONG].unpack1('L!')
-                when :long_long then ref[:ptr][0, Fiddle::SIZEOF_LONG_LONG].unpack1('q')
-                when :ulong_long then ref[:ptr][0, Fiddle::SIZEOF_LONG_LONG].unpack1('Q')
-                when :float then ref[:ptr][0, Fiddle::SIZEOF_FLOAT].unpack1('f')
-                when :double then ref[:ptr][0, Fiddle::SIZEOF_DOUBLE].unpack1('d')
-                when :voidp then format('0x%x', ref[:ptr][0, Fiddle::SIZEOF_VOIDP].unpack1('J'))
-                else
-                  raise Error, "Cannot read output value for type: #{ref[:type]}"
-                end
-
+        value = TypeMap.read_output_pointer(ref[:ptr], ref[:type])
         { index: ref[:index], type: ref[:type].to_s, value: value }
       end
     end

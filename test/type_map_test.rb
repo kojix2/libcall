@@ -41,6 +41,17 @@ class TypeMapTest < Test::Unit::TestCase
     assert_equal :double, Libcall::TypeMap.lookup('float64')
   end
 
+  test 'lookup returns correct type symbols for size/ptr/boolean aliases' do
+    assert_equal :ulong, Libcall::TypeMap.lookup('size_t')
+    assert_equal :long, Libcall::TypeMap.lookup('ssize_t')
+    assert_equal :long, Libcall::TypeMap.lookup('intptr')
+    assert_equal :ulong, Libcall::TypeMap.lookup('uintptr')
+    assert_equal :long, Libcall::TypeMap.lookup('intptr_t')
+    assert_equal :ulong, Libcall::TypeMap.lookup('uintptr_t')
+    assert_equal :long, Libcall::TypeMap.lookup('ptrdiff_t')
+    assert_equal :int, Libcall::TypeMap.lookup('bool')
+  end
+
   test 'lookup returns correct type symbols for pointer types' do
     assert_equal :string, Libcall::TypeMap.lookup('cstr')
     assert_equal :string, Libcall::TypeMap.lookup('str')
@@ -111,6 +122,13 @@ class TypeMapTest < Test::Unit::TestCase
     assert_equal Fiddle::TYPE_DOUBLE, Libcall::TypeMap.to_fiddle_type(:double)
     assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(:voidp)
     assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(:string)
+  end
+
+  test 'sizeof returns expected sizes for select types' do
+    assert_equal Fiddle::SIZEOF_INT, Libcall::TypeMap.sizeof(:int)
+    assert_equal Fiddle::SIZEOF_DOUBLE, Libcall::TypeMap.sizeof(:double)
+    assert_equal Fiddle::SIZEOF_VOIDP, Libcall::TypeMap.sizeof(:voidp)
+    assert_equal Fiddle::SIZEOF_VOIDP, Libcall::TypeMap.sizeof(:string)
   end
 
   test 'to_fiddle_type returns VOIDP for output parameters' do
