@@ -1,66 +1,23 @@
 # frozen_string_literal: true
 
+require_relative 'type_map'
+
 module Libcall
   # Parse and coerce TYPE VALUE argument pairs for FFI calls
   class Parser
-    TYPE_MAP = {
-      'i8' => :char,
-      'u8' => :uchar,
-      'i16' => :short,
-      'u16' => :ushort,
-      'i32' => :int,
-      'u32' => :uint,
-      'i64' => :long_long,
-      'u64' => :ulong_long,
-      'isize' => :long,
-      'usize' => :ulong,
-      'f32' => :float,
-      'f64' => :double,
-      'cstr' => :string,
-      'ptr' => :voidp,
-      'pointer' => :voidp,
-      'void' => :void,
-      # Common aliases
-      'int' => :int,
-      'uint' => :uint,
-      'long' => :long,
-      'ulong' => :ulong,
-      'float' => :float,
-      'double' => :double,
-      'char' => :char,
-      'str' => :string,
-      'string' => :string,
-      # Extended type names
-      'int8' => :char,
-      'uint8' => :uchar,
-      'int16' => :short,
-      'uint16' => :ushort,
-      'int32' => :int,
-      'uint32' => :uint,
-      'int64' => :long_long,
-      'uint64' => :ulong_long,
-      'float32' => :float,
-      'float64' => :double,
-      # Short type names
-      'short' => :short,
-      'ushort' => :ushort
-    }.freeze
-
-    INTEGER_TYPES = %i[int uint long ulong long_long ulong_long char uchar short ushort].freeze
-    FLOAT_TYPES = %i[float double].freeze
 
     # Pair-only API helpers
     def self.parse_type(type_str)
       # Output pointer spec: out:TYPE (e.g., out:int, out:f64)
       if type_str.start_with?('out:')
         inner = type_str.sub(/^out:/, '')
-        inner_sym = TYPE_MAP[inner]
+        inner_sym = TypeMap.lookup(inner)
         raise Error, "Unknown type in out: #{inner}" unless inner_sym
 
         return [:out, inner_sym]
       end
 
-      type_sym = TYPE_MAP[type_str]
+      type_sym = TypeMap.lookup(type_str)
       raise Error, "Unknown type: #{type_str}" unless type_sym
 
       type_sym
@@ -69,7 +26,7 @@ module Libcall
     def self.parse_return_type(type_str)
       return :void if type_str.nil? || type_str.empty? || type_str == 'void'
 
-      type_sym = TYPE_MAP[type_str]
+      type_sym = TypeMap.lookup(type_str)
       raise Error, "Unknown return type: #{type_str}" unless type_sym
 
       type_sym
@@ -77,9 +34,9 @@ module Libcall
 
     def self.coerce_value(type_sym, token)
       case type_sym
-      when *FLOAT_TYPES
+      when *TypeMap::FLOAT_TYPES
         Float(token)
-      when *INTEGER_TYPES
+      when *TypeMap::INTEGER_TYPES
         Integer(token)
       when :voidp
         # Accept common null tokens for pointer types
