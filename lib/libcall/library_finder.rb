@@ -64,31 +64,50 @@ module Libcall
     def default_library_paths
       paths = []
 
-      # Standard library paths
-      paths << '/lib'
-      paths << '/usr/lib'
-      paths << '/usr/local/lib'
-
-      # Architecture-specific paths
-      if RUBY_PLATFORM =~ /x86_64/
-        paths << '/lib/x86_64-linux-gnu'
-        paths << '/usr/lib/x86_64-linux-gnu'
-      elsif RUBY_PLATFORM =~ /aarch64|arm64/
-        paths << '/lib/aarch64-linux-gnu'
-        paths << '/usr/lib/aarch64-linux-gnu'
-      end
-
-      # macOS paths
-      if RUBY_PLATFORM =~ /darwin/
+      if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+        # Windows paths
+        paths << 'C:/Windows/System32'
+        paths << 'C:/Windows/SysWOW64'
+        
+        # MSYS2/MinGW paths
+        if ENV['MSYSTEM']
+          msys_prefix = ENV['MINGW_PREFIX'] || 'C:/msys64/mingw64'
+          paths << "#{msys_prefix}/bin"
+          paths << "#{msys_prefix}/lib"
+        end
+        
+        # Add PATH directories on Windows
+        if ENV['PATH']
+          paths.concat(ENV['PATH'].split(';').map { |p| p.tr('\\', '/') })
+        end
+      else
+        # Unix-like systems (Linux, macOS)
+        # Standard library paths
+        paths << '/lib'
+        paths << '/usr/lib'
         paths << '/usr/local/lib'
-        paths << '/opt/homebrew/lib'
+
+        # Architecture-specific paths
+        if RUBY_PLATFORM =~ /x86_64/
+          paths << '/lib/x86_64-linux-gnu'
+          paths << '/usr/lib/x86_64-linux-gnu'
+        elsif RUBY_PLATFORM =~ /aarch64|arm64/
+          paths << '/lib/aarch64-linux-gnu'
+          paths << '/usr/lib/aarch64-linux-gnu'
+        end
+
+        # macOS paths
+        if RUBY_PLATFORM =~ /darwin/
+          paths << '/usr/local/lib'
+          paths << '/opt/homebrew/lib'
+        end
+
+        # LD_LIBRARY_PATH
+        paths.concat(ENV['LD_LIBRARY_PATH'].split(':')) if ENV['LD_LIBRARY_PATH']
+
+        # DYLD_LIBRARY_PATH (macOS)
+        paths.concat(ENV['DYLD_LIBRARY_PATH'].split(':')) if ENV['DYLD_LIBRARY_PATH']
       end
-
-      # LD_LIBRARY_PATH
-      paths.concat(ENV['LD_LIBRARY_PATH'].split(':')) if ENV['LD_LIBRARY_PATH']
-
-      # DYLD_LIBRARY_PATH (macOS)
-      paths.concat(ENV['DYLD_LIBRARY_PATH'].split(':')) if ENV['DYLD_LIBRARY_PATH']
 
       paths.select { |p| Dir.exist?(p) }
     end
@@ -101,8 +120,15 @@ module Libcall
       end
 
       # Try with lib prefix and common extensions
-      extensions = ['', '.so', '.dylib', '.dll']
-      prefixes = lib_name.start_with?('lib') ? [''] : ['lib']
+      extensions = if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+                     ['', '.dll', '.so', '.a']
+                   elsif RUBY_PLATFORM =~ /darwin/
+                     ['', '.dylib', '.so', '.a']
+                   else
+                     ['', '.so', '.a']
+                   end
+      
+      prefixes = lib_name.start_with?('lib') ? [''] : ['lib', '']
 
       prefixes.each do |prefix|
         extensions.each do |ext|

@@ -4,7 +4,14 @@ require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'fileutils'
 
-SO_EXT = RUBY_PLATFORM =~ /darwin/ ? 'dylib' : 'so'
+IS_WINDOWS = RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+SO_EXT = if IS_WINDOWS
+           'dll'
+         elsif RUBY_PLATFORM =~ /darwin/
+           'dylib'
+         else
+           'so'
+         end
 CC = ENV['CC'] || 'gcc'
 
 namespace :build do
@@ -19,10 +26,19 @@ namespace :build do
     pc_path = File.join(src_dir, 'libtest.pc')
 
     # Build shared library
-    if SO_EXT == 'dylib'
-      sh "#{CC} -dynamiclib -o #{out} #{src}"
+    compile_cmd = if SO_EXT == 'dylib'
+                    "#{CC} -dynamiclib -o #{out} #{src}"
+                  elsif SO_EXT == 'dll'
+                    "#{CC} -shared -o #{out} #{src}"
+                  else
+                    "#{CC} -shared -fPIC -o #{out} #{src}"
+                  end
+
+    # On Windows, prefer RubyInstaller's DevKit via ridk if available
+    if IS_WINDOWS && system('where ridk >NUL 2>&1')
+      sh "ridk exec #{compile_cmd}"
     else
-      sh "#{CC} -shared -fPIC -o #{out} #{src}"
+      sh compile_cmd
     end
 
     # Generate pkg-config file

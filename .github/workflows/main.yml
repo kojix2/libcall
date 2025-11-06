@@ -11,7 +11,7 @@ jobs:
     name: ${{ matrix.os }} Ruby ${{ matrix.ruby }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         ruby:
           - "3.2"
           - "3.3"
@@ -38,6 +38,15 @@ jobs:
         run: |
           brew update
           brew install pkg-config
+
+      - name: Install MSYS2 and pkg-config (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkg-config
 
       - name: Run the default task
         run: bundle exec rake

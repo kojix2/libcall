@@ -7,7 +7,10 @@ require 'open3'
 class IntegrationTest < Test::Unit::TestCase
   ROOT = File.expand_path('..', __dir__)
   LIBCALL = File.join(ROOT, 'exe', 'libcall')
-  LIBM = if RUBY_PLATFORM =~ /darwin/
+  LIBM = if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+           # Windows: use msvcrt.dll for math functions
+           'msvcrt.dll'
+         elsif RUBY_PLATFORM =~ /darwin/
            '/usr/lib/libSystem.B.dylib'
          else
            '/lib/x86_64-linux-gnu/libm.so.6'
@@ -37,7 +40,9 @@ class IntegrationTest < Test::Unit::TestCase
   end
 
   def fixture_lib_path
-    if RUBY_PLATFORM =~ /darwin/
+    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+      File.join(ROOT, 'test', 'fixtures', 'libtest', 'build', 'libtest.dll')
+    elsif RUBY_PLATFORM =~ /darwin/
       File.join(ROOT, 'test', 'fixtures', 'libtest', 'build', 'libtest.dylib')
     else
       File.join(ROOT, 'test', 'fixtures', 'libtest', 'build', 'libtest.so')
@@ -97,6 +102,9 @@ class IntegrationTest < Test::Unit::TestCase
   end
 
   test 'library search with -l flag' do
+    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+      omit('skipping -lm test on Windows; use msvcrt.dll directly')
+    end
     omit('libm is not a standalone library on macOS; use full path tests instead') if RUBY_PLATFORM =~ /darwin/
     stdout, stderr, success = run_libcall('-lm', 'sqrt', '16.0f64', '-r', 'f64')
     assert success, "Command should succeed: #{stderr}"
@@ -112,7 +120,9 @@ class IntegrationTest < Test::Unit::TestCase
   end
 
   test 'cstr return from libc getenv' do
-    if RUBY_PLATFORM =~ /darwin/
+    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+      stdout, stderr, success = run_libcall('msvcrt.dll', 'getenv', '"PATH"', '-r', 'cstr')
+    elsif RUBY_PLATFORM =~ /darwin/
       stdout, stderr, success = run_libcall('/usr/lib/libSystem.B.dylib', 'getenv', '"PATH"', '-r', 'cstr')
     else
       stdout, stderr, success = run_libcall('-lc', 'getenv', '"PATH"', '-r', 'cstr')
@@ -122,7 +132,9 @@ class IntegrationTest < Test::Unit::TestCase
   end
 
   test 'negative float argument with -- separator and -r before it' do
-    if RUBY_PLATFORM =~ /darwin/
+    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+      stdout, stderr, success = run_libcall('-r', 'f64', 'msvcrt.dll', 'fabs', '--', '-5.5f64')
+    elsif RUBY_PLATFORM =~ /darwin/
       stdout, stderr, success = run_libcall('-r', 'f64', LIBM, 'fabs', '--', '-5.5f64')
     else
       stdout, stderr, success = run_libcall('-lm', '-r', 'f64', 'fabs', '--', '-5.5f64')

@@ -12,6 +12,8 @@ Call C functions in shared libraries from the command line.
 gem install libcall
 ```
 
+**Windows**: Supports DLLs (e.g., `msvcrt.dll`, `kernel32.dll`). Searches in System32, PATH, and MSYS2/MinGW directories. For building custom DLLs, RubyInstaller with DevKit is recommended.
+
 ## Usage
 
 ```sh
@@ -60,6 +62,13 @@ libcall --dry-run ./mylib.so test 42i32 -r void
 
 # Using -L and -l (like gcc)
 libcall -lmylib -L./build add 10i32 20i32 -r i32
+
+# Windows: calling C runtime functions
+libcall msvcrt.dll sqrt 16.0f64 -r f64
+# => 4.0
+
+# Windows: accessing environment variables
+libcall msvcrt.dll getenv "PATH" -r cstr
 ```
 
 ## Type Reference
