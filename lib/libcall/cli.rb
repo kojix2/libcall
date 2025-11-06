@@ -116,9 +116,17 @@ module Libcall
           next
         end
 
-        # After function name: parse TYPE VALUE pairs
+        # After function name: parse TYPE VALUE pairs (or TYPE-only for out:TYPE)
         type_tok = tok
         i += 1
+
+        type_sym = Parser.parse_type(type_tok)
+
+        # TYPE that represents an output pointer does not require a value
+        if type_sym.is_a?(Array) && type_sym.first == :out
+          arg_pairs << [type_sym, nil]
+          next
+        end
 
         # Allow `--` between TYPE and VALUE to switch to positional-only
         while i < argv.length && argv[i] == '--'
@@ -129,7 +137,6 @@ module Libcall
         raise Error, "Missing value for argument of type #{type_tok}" if i >= argv.length
 
         value_tok = argv[i]
-        type_sym = Parser.parse_type(type_tok)
         value = Parser.coerce_value(type_sym, value_tok)
         arg_pairs << [type_sym, value]
         i += 1
@@ -238,12 +245,29 @@ module Libcall
         output = {
           library: lib_path,
           function: func_name,
-          return_type: @options[:return_type].to_s,
-          result: result
+          return_type: @options[:return_type].to_s
         }
+
+        if result.is_a?(Hash) && result.key?(:outputs)
+          output[:result] = result[:result]
+          output[:outputs] = result[:outputs]
+        else
+          output[:result] = result
+        end
+
         puts JSON.pretty_generate(output, allow_nan: true)
       else
-        puts result unless result.nil?
+        if result.is_a?(Hash) && result.key?(:outputs)
+          puts "Result: #{result[:result]}" unless result[:result].nil?
+          unless result[:outputs].empty?
+            puts 'Output parameters:'
+            result[:outputs].each do |out|
+              puts "  [#{out[:index]}] #{out[:type]} = #{out[:value]}"
+            end
+          end
+        else
+          puts result unless result.nil?
+        end
       end
     end
   end

@@ -39,6 +39,25 @@ Pass arguments as TYPE VALUE pairs (single-token suffix style has been removed):
 - Examples: `int 10`, `double -3.14`, `string "hello"`
 - Negative values are safe (not treated as options): `int -23`
 
+Pointers and null:
+
+- Use `ptr` (or `pointer`) to pass raw addresses as integers
+- Use `null`, `nil`, `NULL`, or `0` to pass a null pointer
+
+```sh
+# Pass a null pointer to a function taking const char*
+libcall -ltest str_length ptr null -r i32
+# => 0
+```
+
+End of options `--`:
+
+- Use `--` to stop option parsing if a value starts with `-`
+
+```sh
+libcall -lc getenv string -- -r -r cstr
+```
+
 ### Options
 
 - `-l LIBRARY` - library name (searches standard paths)
@@ -50,6 +69,11 @@ Pass arguments as TYPE VALUE pairs (single-token suffix style has been removed):
 - `--verbose` - detailed info
 - `-h, --help` - show help
 - `-v, --version` - show version
+
+Library search:
+
+- `-L` adds search paths; `-l` resolves by name
+- On Linux and macOS, `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` are honored
 
 ### More Examples
 
@@ -90,12 +114,30 @@ libcall msvcrt.dll getenv string "PATH" -r cstr
 | `f32`  | 32-bit float    | single precision   |
 | `f64`  | 64-bit float    | double precision   |
 
+Also supported:
+
+- `string`: C string argument (char*)
+- `cstr`: C string return (char*)
+- `ptr`/`pointer`: void* pointer
+
 ## pkg-config Support
 
 Set `PKG_CONFIG_PATH` and use package names with `-l`:
 
 ```sh
-PKG_CONFIG_PATH=/path/to/pkgconfig libcall -lmypackage func 42i32 -r i32
+PKG_CONFIG_PATH=/path/to/pkgconfig libcall -lmypackage func i32 42 -r i32
+```
+
+## Output parameters (out:TYPE)
+
+You can pass output pointers by specifying `out:TYPE`. The pointer is allocated automatically, passed to the function, and printed after the call.
+
+```sh
+# void get_version(int* major, int* minor)
+libcall -ltest -L ./test/fixtures/libtest/build get_version out:int out:int -r void
+
+# JSON includes an "outputs" array
+libcall --json -ltest -L ./test/fixtures/libtest/build get_version out:int out:int -r void
 ```
 
 ## Warning

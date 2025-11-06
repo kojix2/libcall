@@ -37,6 +37,14 @@ module Libcall
 
     # Pair-only API helpers
     def self.parse_type(type_str)
+      # Output pointer spec: out:TYPE (e.g., out:int, out:f64)
+      if type_str.start_with?('out:')
+        inner = type_str.sub(/^out:/, '')
+        inner_sym = TYPE_MAP[inner]
+        raise Error, "Unknown type in out: #{inner}" unless inner_sym
+        return [:out, inner_sym]
+      end
+
       type_sym = TYPE_MAP[type_str]
       raise Error, "Unknown type: #{type_str}" unless type_sym
 
@@ -81,6 +89,9 @@ module Libcall
     end
 
     def self.fiddle_type(type_sym)
+      # Output parameters are passed as pointers
+      return Fiddle::TYPE_VOIDP if type_sym.is_a?(Array) && type_sym.first == :out
+
       case type_sym
       when :void then Fiddle::TYPE_VOID
       when :char then Fiddle::TYPE_CHAR

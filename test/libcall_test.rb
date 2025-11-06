@@ -33,6 +33,11 @@ class LibcallTest < Test::Unit::TestCase
     assert_equal :string, Libcall::Parser.parse_return_type('cstr')
   end
 
+  test 'parser parses out:TYPE to output pointer' do
+    assert_equal [:out, :int], Libcall::Parser.parse_type('out:i32')
+    assert_equal Fiddle::TYPE_VOIDP, Libcall::Parser.fiddle_type([:out, :int])
+  end
+
   test 'fiddle type conversion' do
     assert_equal Fiddle::TYPE_INT, Libcall::Parser.fiddle_type(:int)
     assert_equal Fiddle::TYPE_DOUBLE, Libcall::Parser.fiddle_type(:double)

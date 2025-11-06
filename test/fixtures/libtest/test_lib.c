@@ -42,3 +42,9 @@ char* echo_string(const char* s) {
 void print_hello(void) {
     // no-op for testing
 }
+
+// Output parameters example: writes version numbers
+void get_version(int32_t* major, int32_t* minor) {
+    if (major) *major = 1;
+    if (minor) *minor = 2;
+}

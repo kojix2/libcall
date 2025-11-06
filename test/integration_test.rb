@@ -126,6 +126,29 @@ class IntegrationTest < Test::Unit::TestCase
     assert_equal '30', stdout
   end
 
+  test 'out parameters: get_version writes two ints' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
+                                          'get_version', 'out:int', 'out:int', '-r', 'void')
+    assert success, "Command should succeed: #{stderr}"
+    # Human-readable output should list output parameters
+    assert_match(/Output parameters:/, stdout)
+    assert_match(/\[0\] int = 1/, stdout)
+    assert_match(/\[1\] int = 2/, stdout)
+  end
+
+  test 'out parameters with json output' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('--json', '-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
+                                          'get_version', 'out:int', 'out:int', '-r', 'void')
+    assert success, "Command should succeed: #{stderr}"
+    doc = JSON.parse(stdout)
+    assert_equal 'void', doc['return_type']
+    assert_kind_of Array, doc['outputs']
+    assert_equal({ 'index' => 0, 'type' => 'int', 'value' => 1 }, doc['outputs'][0])
+    assert_equal({ 'index' => 1, 'type' => 'int', 'value' => 2 }, doc['outputs'][1])
+  end
+
   test 'pair format: add_i32 with negative int value and -r after function' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'), 'add_i32',
