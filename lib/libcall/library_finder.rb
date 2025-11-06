@@ -20,29 +20,23 @@ module Libcall
     # Find library by name (e.g., "m" -> "/lib/x86_64-linux-gnu/libm.so.6")
     def find(lib_name)
       # If it's a path, return as-is
-      return File.expand_path(lib_name) if lib_name.include?('/') || lib_name.include?('\\')
-      return File.expand_path(lib_name) if File.file?(lib_name)
+      return File.expand_path(lib_name) if path_like?(lib_name)
 
       search_paths = @lib_paths + @default_paths
 
       if defined?(PKGConfig)
-        pkg_exists = if PKGConfig.respond_to?(:exist?)
-                       PKGConfig.exist?(lib_name)
-                     else
-                       PKGConfig.respond_to?(:have_package) ? PKGConfig.have_package(lib_name) : false
-                     end
+        pkg_exists = begin
+          PKGConfig.public_send(
+            PKGConfig.respond_to?(:exist?) ? :exist? : :have_package,
+            lib_name
+          )
+        rescue StandardError
+          false
+        end
 
         if pkg_exists
-          lib_dirs = if PKGConfig.respond_to?(:libs_only_L)
-                       PKGConfig.libs_only_L(lib_name).to_s.split.map { |p| p.start_with?('-L') ? p[2..] : p }
-                     else
-                       PKGConfig.libs(lib_name).to_s.split.select { |t| t.start_with?('-L') }.map { |t| t[2..] }
-                     end
-          lib_names = if PKGConfig.respond_to?(:libs_only_l)
-                        PKGConfig.libs_only_l(lib_name).to_s.split.map { |l| l.start_with?('-l') ? l[2..] : l }
-                      else
-                        PKGConfig.libs(lib_name).to_s.split.select { |t| t.start_with?('-l') }.map { |t| t[2..] }
-                      end
+          lib_dirs = extract_pkg_config_flags(lib_name, 'L')
+          lib_names = extract_pkg_config_flags(lib_name, 'l')
 
           search_paths = lib_dirs + search_paths
 
@@ -63,63 +57,65 @@ module Libcall
 
     private
 
+    def path_like?(name)
+      name.include?('/') || name.include?('\\') || File.file?(name)
+    end
+
+    # Extract -L or -l flags from pkg-config output, normalized without the dash prefix
+    def extract_pkg_config_flags(lib_name, flag_char)
+      base = if flag_char == 'L' && PKGConfig.respond_to?(:libs_only_L)
+               PKGConfig.libs_only_L(lib_name)
+             elsif flag_char == 'l' && PKGConfig.respond_to?(:libs_only_l)
+               PKGConfig.libs_only_l(lib_name)
+             else
+               PKGConfig.libs(lib_name)
+             end
+
+      base.to_s.split
+          .select { |t| t.start_with?("-#{flag_char}") }
+          .map { |t| t[2..] }
+    end
+
     def default_library_paths
-      paths = []
-
-      if Platform.windows?
-        paths.concat(windows_library_paths)
-      else
-        paths.concat(unix_library_paths)
-      end
-
-      paths.select { |p| Dir.exist?(p) }
+      (Platform.windows? ? windows_library_paths : unix_library_paths)
+        .select { |p| Dir.exist?(p) }
     end
 
     def windows_library_paths
-      paths = []
-      paths << 'C:/Windows/System32'
-      paths << 'C:/Windows/SysWOW64'
+      paths = %w[C:/Windows/System32 C:/Windows/SysWOW64]
 
       # MSYS2/MinGW paths
       if ENV['MSYSTEM']
         msys_prefix = ENV['MINGW_PREFIX'] || 'C:/msys64/mingw64'
-        paths << "#{msys_prefix}/bin"
-        paths << "#{msys_prefix}/lib"
+        paths.concat(["#{msys_prefix}/bin", "#{msys_prefix}/lib"])
       end
 
       # Add PATH directories on Windows
-      paths.concat(ENV['PATH'].split(';').map { |p| p.tr('\\', '/') }) if ENV['PATH']
+      if ENV['PATH']
+        paths.concat(ENV['PATH'].split(';').map { |p| p.tr('\\', '/') })
+      end
 
       paths
     end
 
     def unix_library_paths
-      paths = []
-
       # Standard library paths
-      paths << '/lib'
-      paths << '/usr/lib'
-      paths << '/usr/local/lib'
+      paths = %w[/lib /usr/lib /usr/local/lib]
 
       # Architecture-specific paths (Linux)
-      arch = Platform.architecture
-      if arch == 'x86_64'
-        paths << '/lib/x86_64-linux-gnu'
-        paths << '/usr/lib/x86_64-linux-gnu'
-      elsif arch == 'aarch64'
-        paths << '/lib/aarch64-linux-gnu'
-        paths << '/usr/lib/aarch64-linux-gnu'
+      case Platform.architecture
+      when 'x86_64'
+        paths.concat(%w[/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu])
+      when 'aarch64'
+        paths.concat(%w[/lib/aarch64-linux-gnu /usr/lib/aarch64-linux-gnu])
       end
 
       # macOS paths
-      if Platform.darwin?
-        paths << '/usr/local/lib'
-        paths << '/opt/homebrew/lib'
-      end
+      paths.concat(%w[/usr/local/lib /opt/homebrew/lib]) if Platform.darwin?
 
       # Environment-based paths
-      paths.concat(ENV['LD_LIBRARY_PATH'].split(':')) if ENV['LD_LIBRARY_PATH']
-      paths.concat(ENV['DYLD_LIBRARY_PATH'].split(':')) if ENV['DYLD_LIBRARY_PATH']
+      paths.concat(ENV.fetch('LD_LIBRARY_PATH', '').split(':'))
+      paths.concat(ENV.fetch('DYLD_LIBRARY_PATH', '').split(':'))
 
       paths
     end
@@ -132,24 +128,19 @@ module Libcall
       end
 
       # Try with lib prefix and common extensions
-      extensions = Platform.library_extensions
       prefixes = lib_name.start_with?('lib') ? [''] : ['lib', '']
+      extensions = Platform.library_extensions
 
-      prefixes.each do |prefix|
-        extensions.each do |ext|
-          name = "#{prefix}#{lib_name}#{ext}"
-          search_paths.each do |path|
-            full_path = File.join(path, name)
-            return File.expand_path(full_path) if File.file?(full_path)
+      prefixes.product(extensions, search_paths).each do |prefix, ext, path|
+        name = "#{prefix}#{lib_name}#{ext}"
+        full_path = File.join(path, name)
+        return File.expand_path(full_path) if File.file?(full_path)
 
-            # Check for versioned libraries (libm.so.6, etc.)
-            next if ext.empty?
+        # Check for versioned libraries (libm.so.6, etc.)
+        next if ext.empty?
 
-            pattern = File.join(path, "#{name}.*")
-            matches = Dir.glob(pattern).select { |f| File.file?(f) }
-            return File.expand_path(matches.first) unless matches.empty?
-          end
-        end
+        matches = Dir.glob(File.join(path, "#{name}.*")).select { |f| File.file?(f) }
+        return File.expand_path(matches.first) unless matches.empty?
       end
 
       nil
