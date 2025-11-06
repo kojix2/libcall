@@ -43,4 +43,12 @@ class LibcallTest < Test::Unit::TestCase
     assert_equal Fiddle::TYPE_DOUBLE, Libcall::TypeMap.to_fiddle_type(:double)
     assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(:string)
   end
+
+  test 'parser and types for arrays' do
+    assert_equal %i[array int], Libcall::Parser.parse_type('int[]')
+    assert_equal [:out_array, :int, 3], Libcall::Parser.parse_type('out:int[3]')
+    assert_equal [1, 2, 3], Libcall::Parser.coerce_value(%i[array int], '1,2,3')
+    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(%i[array int])
+    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type([:out_array, :int, 3])
+  end
 end

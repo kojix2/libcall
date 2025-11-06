@@ -2,6 +2,7 @@
 // Compiles to shared library in build/ by Rake tasks.
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -73,5 +74,29 @@ void out_echo_string(const char *s, char **out)
     else
     {
         *out = strdup(s);
+    }
+}
+
+// Sum of int32 array
+int32_t sum_i32_array(const int32_t *arr, size_t n)
+{
+    if (!arr)
+        return 0;
+    int64_t sum = 0;
+    for (size_t i = 0; i < n; i++)
+    {
+        sum += arr[i];
+    }
+    return (int32_t)sum;
+}
+
+// Fill sequence 0..n-1 into out array
+void fill_seq_i32(int32_t *out_arr, size_t n)
+{
+    if (!out_arr)
+        return;
+    for (size_t i = 0; i < n; i++)
+    {
+        out_arr[i] = (int32_t)i;
     }
 }

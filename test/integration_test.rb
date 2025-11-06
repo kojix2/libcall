@@ -232,6 +232,24 @@ class IntegrationTest < Test::Unit::TestCase
     assert_equal '30', stdout
   end
 
+  test 'input array: sum_i32_array with int[] and length' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
+                                          'sum_i32_array', 'int[]', '1,2,3,4,5', 'size_t', '5', '-r', 'i32')
+    assert success, "Command should succeed: #{stderr}"
+    assert_equal '15', stdout
+  end
+
+  test 'output array: fill_seq_i32 into out:int[5]' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
+                                          'fill_seq_i32', 'out:int[5]', 'size_t', '5', '-r', 'void')
+    assert success, "Command should succeed: #{stderr}"
+    assert_match(/Output parameters:/, stdout)
+    # Expect array values 0..4
+    assert_match(/\[0\] int\[5\] = \[0, 1, 2, 3, 4\]/, stdout)
+  end
+
   test 'library search via env var (LD_LIBRARY_PATH/DYLD_LIBRARY_PATH)' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     require 'tmpdir'

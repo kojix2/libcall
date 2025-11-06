@@ -155,8 +155,8 @@ module Libcall
 
         type_sym = Parser.parse_type(type_tok)
 
-        # TYPE that represents an output pointer does not require a value
-        if type_sym.is_a?(Array) && type_sym.first == :out
+        # TYPE that represents an output pointer/array does not require a value
+        if type_sym.is_a?(Array) && %i[out out_array].include?(type_sym.first)
           arg_pairs << [type_sym, nil]
           next
         end

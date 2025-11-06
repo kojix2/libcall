@@ -22,11 +22,28 @@ module Libcall
       arg_pairs.each_with_index do |(type_sym, value), idx|
         arg_types << TypeMap.to_fiddle_type(type_sym)
 
-        if type_sym.is_a?(Array) && type_sym.first == :out
-          inner = type_sym[1]
-          ptr = TypeMap.allocate_output_pointer(inner)
-          out_refs << { index: idx, type: inner, ptr: ptr }
-          arg_values << ptr.to_i
+        if type_sym.is_a?(Array)
+          case type_sym.first
+          when :out
+            inner = type_sym[1]
+            ptr = TypeMap.allocate_output_pointer(inner)
+            out_refs << { index: idx, kind: :out, type: inner, ptr: ptr }
+            arg_values << ptr.to_i
+          when :array
+            base = type_sym[1]
+            values = Array(value)
+            ptr = TypeMap.allocate_array(base, values.length)
+            TypeMap.write_array(ptr, base, values)
+            arg_values << ptr.to_i
+          when :out_array
+            base = type_sym[1]
+            count = type_sym[2]
+            ptr = TypeMap.allocate_array(base, count)
+            out_refs << { index: idx, kind: :out_array, base: base, count: count, ptr: ptr }
+            arg_values << ptr.to_i
+          else
+            raise Error, "Unknown array/output form: #{type_sym.inspect}"
+          end
         else
           arg_values << value
         end
@@ -76,8 +93,18 @@ module Libcall
 
     def read_output_values(out_refs)
       out_refs.map do |ref|
-        value = TypeMap.read_output_pointer(ref[:ptr], ref[:type])
-        { index: ref[:index], type: ref[:type].to_s, value: value }
+        case ref[:kind]
+        when :out
+          value = TypeMap.read_output_pointer(ref[:ptr], ref[:type])
+          { index: ref[:index], type: ref[:type].to_s, value: value }
+        when :out_array
+          base = ref[:base]
+          count = ref[:count]
+          values = TypeMap.read_array(ref[:ptr], base, count)
+          { index: ref[:index], type: "#{base}[#{count}]", value: values }
+        else
+          raise Error, "Unknown out reference kind: #{ref[:kind]}"
+        end
       end
     end
   end

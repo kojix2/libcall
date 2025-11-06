@@ -90,8 +90,11 @@ module Libcall
 
     # Convert type symbol to Fiddle type constant
     def self.to_fiddle_type(type_sym)
-      # Output parameters are passed as pointers
-      return Fiddle::TYPE_VOIDP if type_sym.is_a?(Array) && type_sym.first == :out
+      # Array and output parameters are passed as pointers
+      if type_sym.is_a?(Array)
+        tag = type_sym.first
+        return Fiddle::TYPE_VOIDP if %i[out array out_array].include?(tag)
+      end
 
       case type_sym
       when :void then Fiddle::TYPE_VOID
@@ -161,6 +164,45 @@ module Libcall
       when :voidp then format('0x%x', ptr[0, Fiddle::SIZEOF_VOIDP].unpack1('J'))
       else
         raise Error, "Cannot read output value for type: #{type_sym}"
+      end
+    end
+
+    # Allocate memory for an array of base type and count elements
+    def self.allocate_array(base_type, count)
+      Fiddle::Pointer.malloc(sizeof(base_type) * count)
+    end
+
+    def self.write_array(ptr, base_type, values)
+      return if values.nil? || values.empty?
+
+      bytes = sizeof(base_type) * values.length
+      ptr[0, bytes] = values.pack(pack_template(base_type) + values.length.to_s)
+    end
+
+    def self.read_array(ptr, base_type, count)
+      return [] if count <= 0
+
+      bytes = sizeof(base_type) * count
+      raw = ptr[0, bytes]
+      raw.unpack(pack_template(base_type) + count.to_s)
+    end
+
+    def self.pack_template(base_type)
+      case base_type
+      when :char then 'c'
+      when :uchar then 'C'
+      when :short then 's'
+      when :ushort then 'S'
+      when :int then 'i'
+      when :uint then 'I'
+      when :long then 'l!'
+      when :ulong then 'L!'
+      when :long_long then 'q'
+      when :ulong_long then 'Q'
+      when :float then 'f'
+      when :double then 'd'
+      else
+        raise Error, "Unsupported array base type: #{base_type}"
       end
     end
   end
