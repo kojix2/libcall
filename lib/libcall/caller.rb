@@ -20,7 +20,7 @@ module Libcall
       out_refs = []
 
       arg_pairs.each_with_index do |(type_sym, value), idx|
-        arg_types << Parser.fiddle_type(type_sym)
+        arg_types << TypeMap.to_fiddle_type(type_sym)
 
         if type_sym.is_a?(Array) && type_sym.first == :out
           inner = type_sym[1]
@@ -32,7 +32,7 @@ module Libcall
         end
       end
 
-      ret_type = Parser.fiddle_type(return_type)
+      ret_type = TypeMap.to_fiddle_type(return_type)
 
       handle = Fiddle.dlopen(lib_path)
       func_ptr = handle[func_name]

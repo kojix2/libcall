@@ -35,12 +35,12 @@ class LibcallTest < Test::Unit::TestCase
 
   test 'parser parses out:TYPE to output pointer' do
     assert_equal %i[out int], Libcall::Parser.parse_type('out:i32')
-    assert_equal Fiddle::TYPE_VOIDP, Libcall::Parser.fiddle_type(%i[out int])
+    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(%i[out int])
   end
 
   test 'fiddle type conversion' do
-    assert_equal Fiddle::TYPE_INT, Libcall::Parser.fiddle_type(:int)
-    assert_equal Fiddle::TYPE_DOUBLE, Libcall::Parser.fiddle_type(:double)
-    assert_equal Fiddle::TYPE_VOIDP, Libcall::Parser.fiddle_type(:string)
+    assert_equal Fiddle::TYPE_INT, Libcall::TypeMap.to_fiddle_type(:int)
+    assert_equal Fiddle::TYPE_DOUBLE, Libcall::TypeMap.to_fiddle_type(:double)
+    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(:string)
   end
 end

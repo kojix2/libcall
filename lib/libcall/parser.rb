@@ -5,7 +5,6 @@ require_relative 'type_map'
 module Libcall
   # Parse and coerce TYPE VALUE argument pairs for FFI calls
   class Parser
-
     # Pair-only API helpers
     def self.parse_type(type_str)
       # Output pointer spec: out:TYPE (e.g., out:int, out:f64)
@@ -57,27 +56,6 @@ module Libcall
         token[1...-1]
       else
         token
-      end
-    end
-
-    def self.fiddle_type(type_sym)
-      # Output parameters are passed as pointers
-      return Fiddle::TYPE_VOIDP if type_sym.is_a?(Array) && type_sym.first == :out
-
-      case type_sym
-      when :void then Fiddle::TYPE_VOID
-      when :char then Fiddle::TYPE_CHAR
-      when :uchar then Fiddle::TYPE_UCHAR
-      when :short then Fiddle::TYPE_SHORT
-      when :ushort then Fiddle::TYPE_USHORT
-      when :int, :uint then Fiddle::TYPE_INT
-      when :long, :ulong then Fiddle::TYPE_LONG
-      when :long_long, :ulong_long then Fiddle::TYPE_LONG_LONG
-      when :float then Fiddle::TYPE_FLOAT
-      when :double then Fiddle::TYPE_DOUBLE
-      when :voidp, :string then Fiddle::TYPE_VOIDP
-      else
-        raise Error, "Unknown Fiddle type: #{type_sym}"
       end
     end
   end
