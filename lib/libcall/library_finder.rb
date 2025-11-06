@@ -91,9 +91,7 @@ module Libcall
       end
 
       # Add PATH directories on Windows
-      if ENV['PATH']
-        paths.concat(ENV['PATH'].split(';').map { |p| p.tr('\\', '/') })
-      end
+      paths.concat(ENV['PATH'].split(';').map { |p| p.tr('\\', '/') }) if ENV['PATH']
 
       paths
     end
