@@ -9,6 +9,7 @@ rescue LoadError
 end
 
 module Libcall
+  # Find shared libraries by name using standard search paths and pkg-config
   class LibraryFinder
     def initialize(lib_paths: [])
       @lib_paths = lib_paths

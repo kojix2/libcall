@@ -4,6 +4,7 @@ require 'optparse'
 require 'json'
 
 module Libcall
+  # Command-line interface for calling C functions from shared libraries
   class CLI
     def initialize(argv)
       @argv = argv
@@ -36,7 +37,7 @@ module Libcall
       if @options[:verbose]
         warn "Library: #{lib_path}"
         warn "Function: #{func_name}"
-        warn "Arguments: #{args.inspect}"
+        warn "Arguments: #{arg_pairs.inspect}"
         warn "Return type: #{@options[:return_type]}"
       end
 
@@ -76,7 +77,7 @@ module Libcall
     # Custom scanner that supports:
     # - Known flags anywhere (before/after function name)
     # - Negative numbers as values (not mistaken for options)
-    # - TYPE VALUE pairs and legacy single-token args mixed
+    # - TYPE VALUE pairs
     def scan_argv!(argv)
       lib_path = nil
       func_name = nil
@@ -86,64 +87,16 @@ module Libcall
       while i < argv.length
         tok = argv[i]
 
-        # End-of-options marker: everything that follows becomes a raw arg token
+        # End-of-options marker: everything that follows is treated as TYPE VALUE pairs
         if tok == '--'
           i += 1
-          while i < argv.length
-            args_tokens << argv[i]
-            i += 1
-          end
           break
         end
 
-        # Global flags (allowed anywhere)
-        case tok
-        when '--dry-run'
-          @options[:dry_run] = true
-          i += 1
-          next
-        when '--json'
-          @options[:json] = true
-          i += 1
-          next
-        when '--verbose'
-          @options[:verbose] = true
-          i += 1
-          next
-        when '-h', '--help'
-          puts parse_options_banner
-          exit 0
-        when '-v', '--version'
-          puts "libcall #{Libcall::VERSION}"
-          exit 0
-        when '-l', '--lib'
-          i += 1
-          raise Error, 'Missing value for -l/--lib' if i >= argv.length
-
-          @options[:lib_name] = argv[i]
-          i += 1
-          next
-        when /\A-l(.+)\z/
-          @options[:lib_name] = ::Regexp.last_match(1)
-          i += 1
-          next
-        when '-L', '--lib-path'
-          i += 1
-          raise Error, 'Missing value for -L/--lib-path' if i >= argv.length
-
-          @options[:lib_paths] << argv[i]
-          i += 1
-          next
-        when '-r', '--ret'
-          i += 1
-          raise Error, 'Missing value for -r/--ret' if i >= argv.length
-
-          @options[:return_type] = Parser.parse_return_type(argv[i])
-          i += 1
-          next
-        when /\A-r(.+)\z/
-          @options[:return_type] = Parser.parse_return_type(::Regexp.last_match(1))
-          i += 1
+        # Try to handle as a known option
+        option_consumed = handle_option!(tok, argv, i)
+        if option_consumed > 0
+          i += option_consumed
           next
         end
 
@@ -160,7 +113,7 @@ module Libcall
           next
         end
 
-        # After function name: parse TYPE VALUE pairs, allowing options anywhere
+        # After function name: parse TYPE VALUE pairs
         type_tok = tok
         i += 1
         raise Error, "Missing value for argument of type #{type_tok}" if i >= argv.length
@@ -175,34 +128,86 @@ module Libcall
       [lib_path, func_name, arg_pairs]
     end
 
-    def dry_run_info(lib_path, func_name, arg_pairs)
-      info = {
-        library: lib_path,
-        function: func_name,
-        arguments: [],
-        return_type: @options[:return_type].to_s
-      }
+    # Handle known option flags and return number of consumed tokens (0 if not an option)
+    # rubocop:disable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/AbcSize
+    def handle_option!(tok, argv, i)
+      case tok
+      when '--dry-run'
+        @options[:dry_run] = true
+        1
+      when '--json'
+        @options[:json] = true
+        1
+      when '--verbose'
+        @options[:verbose] = true
+        1
+      when '-h', '--help'
+        puts parse_options_banner
+        exit 0
+      when '-v', '--version'
+        puts "libcall #{Libcall::VERSION}"
+        exit 0
+      when '-l', '--lib'
+        raise Error, 'Missing value for -l/--lib' if i + 1 >= argv.length
 
-      arg_pairs.each_with_index do |(type_sym, value), i|
-        info[:arguments] << {
-          index: i,
-          type: type_sym.to_s,
-          value: value
-        }
+        @options[:lib_name] = argv[i + 1]
+        2
+      when /\A-l(.+)\z/
+        @options[:lib_name] = ::Regexp.last_match(1)
+        1
+      when '-L', '--lib-path'
+        raise Error, 'Missing value for -L/--lib-path' if i + 1 >= argv.length
+
+        @options[:lib_paths] << argv[i + 1]
+        2
+      when '-r', '--ret'
+        raise Error, 'Missing value for -r/--ret' if i + 1 >= argv.length
+
+        @options[:return_type] = Parser.parse_return_type(argv[i + 1])
+        2
+      when /\A-r(.+)\z/
+        @options[:return_type] = Parser.parse_return_type(::Regexp.last_match(1))
+        1
+      else
+        0 # Not an option
       end
+    end
+    # rubocop:enable Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/AbcSize
+
+    def dry_run_info(lib_path, func_name, arg_pairs)
+      info = build_info_hash(lib_path, func_name, arg_pairs)
 
       if @options[:json]
         puts JSON.pretty_generate(info)
       else
-        puts "Library:  #{info[:library]}"
-        puts "Function: #{info[:function]}"
-        puts "Return:   #{info[:return_type]}"
-        unless info[:arguments].empty?
-          puts 'Arguments:'
-          info[:arguments].each do |arg|
-            puts "  [#{arg[:index]}] #{arg[:type]} = #{arg[:value].inspect}"
-          end
-        end
+        print_info(info)
+      end
+    end
+
+    def build_info_hash(lib_path, func_name, arg_pairs)
+      {
+        library: lib_path,
+        function: func_name,
+        arguments: arg_pairs.map.with_index do |(type_sym, value), i|
+          {
+            index: i,
+            type: type_sym.to_s,
+            value: value
+          }
+        end,
+        return_type: @options[:return_type].to_s
+      }
+    end
+
+    def print_info(info)
+      puts "Library:  #{info[:library]}"
+      puts "Function: #{info[:function]}"
+      puts "Return:   #{info[:return_type]}"
+      return if info[:arguments].empty?
+
+      puts 'Arguments:'
+      info[:arguments].each do |arg|
+        puts "  [#{arg[:index]}] #{arg[:type]} = #{arg[:value].inspect}"
       end
     end
 
@@ -215,7 +220,10 @@ module Libcall
       )
 
       result = caller.call
+      output_result(lib_path, func_name, result)
+    end
 
+    def output_result(lib_path, func_name, result)
       if @options[:json]
         output = {
           library: lib_path,

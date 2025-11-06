@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Libcall
+  # Parse and coerce TYPE VALUE argument pairs for FFI calls
   class Parser
     TYPE_MAP = {
       'i8' => :char,
@@ -18,6 +19,7 @@ module Libcall
       'cstr' => :string,
       'ptr' => :voidp,
       'void' => :void,
+      # Common aliases
       'int' => :int,
       'uint' => :uint,
       'long' => :long,
@@ -28,6 +30,9 @@ module Libcall
       'str' => :string,
       'string' => :string
     }.freeze
+
+    INTEGER_TYPES = %i[int uint long ulong long_long ulong_long char uchar short ushort].freeze
+    FLOAT_TYPES = %i[float double].freeze
 
     # Pair-only API helpers
     def self.parse_type(type_str)
@@ -48,23 +53,24 @@ module Libcall
 
     def self.coerce_value(type_sym, token)
       case type_sym
-      when :float, :double
+      when *FLOAT_TYPES
         Float(token)
-      when :int, :uint, :long, :ulong, :long_long, :ulong_long, :char, :uchar, :short, :ushort
-        Integer(token)
-      when :voidp
+      when *INTEGER_TYPES, :voidp
         Integer(token)
       when :string
-        # Strip surrounding quotes if present
-        if (token.start_with?('"') && token.end_with?('"')) || (token.start_with?("'") && token.end_with?("'"))
-          token[1...-1]
-        else
-          token
-        end
+        strip_quotes(token)
       when :void
         raise Error, 'void cannot be used as an argument type'
       else
         raise Error, "Unknown type for coercion: #{type_sym}"
+      end
+    end
+
+    def self.strip_quotes(token)
+      if (token.start_with?('"') && token.end_with?('"')) || (token.start_with?("'") && token.end_with?("'"))
+        token[1...-1]
+      else
+        token
       end
     end
 

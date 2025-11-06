@@ -3,6 +3,7 @@
 require 'fiddle'
 
 module Libcall
+  # Execute C function calls via Fiddle FFI
   class Caller
     attr_reader :lib_path, :func_name, :return_type, :arg_pairs
 
