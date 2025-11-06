@@ -29,4 +29,11 @@ class ParserEdgeCasesTest < Test::Unit::TestCase
     assert_equal :void, Libcall::Parser.parse_return_type(nil)
     assert_equal :void, Libcall::Parser.parse_return_type('')
   end
+
+  test 'pointer null coercion' do
+    assert_equal 0, Libcall::Parser.coerce_value(:voidp, 'null')
+    assert_equal 0, Libcall::Parser.coerce_value(:voidp, 'NULL')
+    assert_equal 0, Libcall::Parser.coerce_value(:voidp, 'nil')
+    assert_equal 0, Libcall::Parser.coerce_value(:voidp, '0')
+  end
 end

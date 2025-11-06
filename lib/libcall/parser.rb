@@ -18,6 +18,7 @@ module Libcall
       'f64' => :double,
       'cstr' => :string,
       'ptr' => :voidp,
+      'pointer' => :voidp,
       'void' => :void,
       # Common aliases
       'int' => :int,
@@ -55,7 +56,12 @@ module Libcall
       case type_sym
       when *FLOAT_TYPES
         Float(token)
-      when *INTEGER_TYPES, :voidp
+      when *INTEGER_TYPES
+        Integer(token)
+      when :voidp
+        # Accept common null tokens for pointer types
+        return 0 if token =~ /\A(null|nil|NULL|0)\z/
+
         Integer(token)
       when :string
         strip_quotes(token)

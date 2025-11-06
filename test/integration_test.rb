@@ -146,6 +146,14 @@ class IntegrationTest < Test::Unit::TestCase
     assert_equal '5.5', stdout
   end
 
+  test 'null pointer argument to str_length returns 0' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    lib = fixture_lib_path
+    stdout, stderr, success = run_libcall(lib, 'str_length', 'ptr', 'null', '-r', 'i32')
+    assert success, "Command should succeed: #{stderr}"
+    assert_equal '0', stdout
+  end
+
   test 'cstr return from libc getenv' do
     if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
       stdout, stderr, success = run_libcall('msvcrt.dll', 'getenv', 'string', '"PATH"', '-r', 'cstr')
