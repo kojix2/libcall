@@ -5,6 +5,24 @@ require 'json'
 module Libcall
   # Command-line interface for calling C functions from shared libraries
   class CLI
+    PLATFORM_EXAMPLES = {
+      windows: <<~EXAMPLES.chomp,
+        libcall -lmsvcrt puts string "Hello from libcall" -r int
+        libcall -lKernel32 GetTickCount -r uint32
+        libcall -lmsvcrt getenv string "PATH" -r string
+      EXAMPLES
+      darwin: <<~EXAMPLES.chomp,
+        libcall -lSystem getpid -r int
+        libcall -lSystem puts string "Hello from libcall" -r int
+        libcall -lSystem getenv string "PATH" -r string
+      EXAMPLES
+      unix: <<~EXAMPLES.chomp
+        libcall -lm sqrt double 16 -r double
+        libcall -lc getpid -r int
+        libcall -lc getenv string "PATH" -r string
+      EXAMPLES
+    }.freeze
+
     def initialize(argv)
       @argv = argv
       @options = {
@@ -57,27 +75,33 @@ module Libcall
     private
 
     def parse_options_banner
+      examples = if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+                   PLATFORM_EXAMPLES[:windows]
+                 elsif RUBY_PLATFORM =~ /darwin/
+                   PLATFORM_EXAMPLES[:darwin]
+                 else
+                   PLATFORM_EXAMPLES[:unix]
+                 end
+
       <<~BANNER
         Usage: libcall [OPTIONS] <LIBRARY> <FUNCTION> (TYPE VALUE)...
 
         Call C functions in shared libraries from the command line.
 
-        Pass arguments as TYPE VALUE pairs only.
+        Arguments are passed as TYPE VALUE pairs.
 
         Examples:
-          libcall -lm -r f64 sqrt double 16
-          libcall -ltest -L ./build add_i32 int 10 int -23 -r int
-          libcall --dry-run ./mylib.so test u64 42 -r void
+          #{examples.lines.map { |line| line.chomp }.join("\n  ")}
 
         Options:
-          -l, --lib LIBRARY          Library name to search for (e.g., -lm for libm)
-          -L, --lib-path PATH        Add directory to library search path
-          -r, --ret TYPE             Return type (default: void)
-              --dry-run              Show what would be executed without calling
-              --json                 Output result in JSON format
-              --verbose              Show detailed information
-          -h, --help                 Show this help message
-          -v, --version              Show version information
+          -l, --lib LIBRARY        Library name to search for (e.g., -lm for libm)
+          -L, --lib-path PATH      Add directory to library search path
+          -r, --ret TYPE           Return type (default: void)
+              --dry-run            Show what would be executed without calling
+              --json               Output result in JSON format
+              --verbose            Show detailed information
+          -h, --help               Show this help message
+          -v, --version            Show version information
       BANNER
     end
 
