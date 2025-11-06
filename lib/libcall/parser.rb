@@ -29,7 +29,21 @@ module Libcall
       'double' => :double,
       'char' => :char,
       'str' => :string,
-      'string' => :string
+      'string' => :string,
+      # Extended type names
+      'int8' => :char,
+      'uint8' => :uchar,
+      'int16' => :short,
+      'uint16' => :ushort,
+      'int32' => :int,
+      'uint32' => :uint,
+      'int64' => :long_long,
+      'uint64' => :ulong_long,
+      'float32' => :float,
+      'float64' => :double,
+      # Short type names
+      'short' => :short,
+      'ushort' => :ushort
     }.freeze
 
     INTEGER_TYPES = %i[int uint long ulong long_long ulong_long char uchar short ushort].freeze
