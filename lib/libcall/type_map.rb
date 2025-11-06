@@ -128,7 +128,10 @@ module Libcall
 
     # Allocate a pointer for output parameter
     def self.allocate_output_pointer(type_sym)
-      Fiddle::Pointer.malloc(sizeof(type_sym))
+      ptr = Fiddle::Pointer.malloc(sizeof(type_sym))
+      # For out:string, we pass char**. Initialize inner pointer to NULL for safety.
+      ptr[0, Fiddle::SIZEOF_VOIDP] = [0].pack('J') if type_sym == :string
+      ptr
     end
 
     # Read value from output pointer

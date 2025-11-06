@@ -149,6 +149,26 @@ class IntegrationTest < Test::Unit::TestCase
     assert_equal({ 'index' => 1, 'type' => 'int', 'value' => 2 }, doc['outputs'][1])
   end
 
+  test 'out:string returns C-allocated string through char**' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
+                                          'out_echo_string', 'string', '"hello"', 'out:string', '-r', 'void')
+    assert success, "Command should succeed: #{stderr}"
+    assert_match(/Output parameters:/, stdout)
+    assert_match(/\[1\] string = hello/, stdout)
+  end
+
+  test 'out:string with json output' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('--json', '-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
+                                          'out_echo_string', 'string', '"world"', 'out:string', '-r', 'void')
+    assert success, "Command should succeed: #{stderr}"
+    doc = JSON.parse(stdout)
+    assert_equal 'void', doc['return_type']
+    assert_kind_of Array, doc['outputs']
+    assert_equal({ 'index' => 1, 'type' => 'string', 'value' => 'world' }, doc['outputs'][0])
+  end
+
   test 'pair format: add_i32 with negative int value and -r after function' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'), 'add_i32',
