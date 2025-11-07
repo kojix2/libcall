@@ -5,6 +5,7 @@ require_relative 'libcall/parser'
 require_relative 'libcall/library_finder'
 require_relative 'libcall/caller'
 require_relative 'libcall/cli'
+require_relative 'libcall/fiddley'
 
 module Libcall
   class Error < StandardError; end

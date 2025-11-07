@@ -10,19 +10,6 @@ module Libcall
       # Callback function pointer: func/callback 'ret(arg,...) { |...| ... }'
       return :callback if %w[func callback].include?(type_str)
 
-      # Built-in comparator alias: cmp:TYPE[:asc|:desc]
-      if type_str.start_with?('cmp:')
-        m = type_str.match(/^cmp:(.+?)(?::(asc|desc))?$/)
-        raise Error, "Invalid cmp spec: #{type_str}" unless m
-
-        base = m[1]
-        order = (m[2] || 'asc').to_sym
-        base_sym = TypeMap.lookup(base)
-        raise Error, "Unknown cmp base type: #{base}" unless base_sym
-
-        return [:cmp, base_sym, order]
-      end
-
       # Output array spec: out:TYPE[N]
       if type_str.start_with?('out:') && type_str.match(/^out:(.+)\[(\d+)\]$/)
         base = Regexp.last_match(1)

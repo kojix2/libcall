@@ -42,23 +42,6 @@ module Libcall
             ptr = TypeMap.allocate_array(base, count)
             out_refs << { index: idx, kind: :out_array, base: base, count: count, ptr: ptr }
             arg_values << ptr.to_i
-          when :cmp
-            base = type_sym[1]
-            order = type_sym[2]
-            ret_ty = Fiddle::TYPE_INT
-            arg_tys = [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP]
-            closure = Fiddle::Closure::BlockCaller.new(ret_ty, arg_tys) do |pa, pb|
-              a_ptr = Fiddle::Pointer.new(pa)
-              b_ptr = Fiddle::Pointer.new(pb)
-              av = TypeMap.read_scalar(a_ptr, base)
-              bv = TypeMap.read_scalar(b_ptr, base)
-              cmp = av <=> bv
-              cmp = -cmp if order == :desc
-              cmp
-            end
-            arg_values << closure
-            # Keep closure alive
-            (closures ||= []) << closure
           else
             raise Error, "Unknown array/output form: #{type_sym.inspect}"
           end
