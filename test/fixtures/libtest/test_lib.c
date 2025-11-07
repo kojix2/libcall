@@ -109,6 +109,18 @@ int32_t apply_i32(int32_t a, int32_t b, int32_t (*op)(int32_t, int32_t))
     return op(a, b);
 }
 
+// Default ascending comparator for int32_t values (for qsort)
+static int cmp_int32_asc(const void *a, const void *b)
+{
+    int32_t av = *(const int32_t *)a;
+    int32_t bv = *(const int32_t *)b;
+    if (av < bv)
+        return -1;
+    if (av > bv)
+        return 1;
+    return 0;
+}
+
 // Sort copy of input array into out using qsort and provided comparator
 void sort_i32_copy(const int32_t *in, int32_t *out, size_t n, int (*compar)(const void *, const void *))
 {
@@ -119,15 +131,6 @@ void sort_i32_copy(const int32_t *in, int32_t *out, size_t n, int (*compar)(cons
     if (compar) {
         qsort(out, n, sizeof(int32_t), compar);
     } else {
-        // default ascending compare
-        int cmp_default(const void *a, const void *b)
-        {
-            int32_t av = *(const int32_t *)a;
-            int32_t bv = *(const int32_t *)b;
-            if (av < bv) return -1;
-            if (av > bv) return 1;
-            return 0;
-        }
-        qsort(out, n, sizeof(int32_t), cmp_default);
+        qsort(out, n, sizeof(int32_t), cmp_int32_asc);
     }
 }
