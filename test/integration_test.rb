@@ -266,7 +266,6 @@ class IntegrationTest < Test::Unit::TestCase
     assert_equal '7', stdout
   end
 
-
   test 'library search via env var (LD_LIBRARY_PATH/DYLD_LIBRARY_PATH)' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     require 'tmpdir'

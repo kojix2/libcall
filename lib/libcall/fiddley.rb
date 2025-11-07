@@ -18,7 +18,7 @@ module Libcall
       # Falls back to pointer size for :pointer and :voidp.
       def sizeof(type)
         return Fiddle::SIZEOF_SIZE_T if type == :size_t
-        return Fiddle::SIZEOF_VOIDP if type == :pointer || type == :voidp
+        return Fiddle::SIZEOF_VOIDP if %i[pointer voidp].include?(type)
 
         # Delegate to Libcall::TypeMap when possible
         Libcall::TypeMap.sizeof(type)
@@ -29,7 +29,7 @@ module Libcall
       # Convert a type symbol to a Fiddle type constant.
       def to_fiddle_type(type)
         return Fiddle::TYPE_SIZE_T if type == :size_t
-        return Fiddle::TYPE_VOIDP if type == :pointer || type == :voidp
+        return Fiddle::TYPE_VOIDP if %i[pointer voidp].include?(type)
 
         Libcall::TypeMap.to_fiddle_type(type)
       rescue StandardError
@@ -44,7 +44,8 @@ module Libcall
         Libcall::TypeMap.pack_template(type)
       rescue StandardError
         # For generic pointers/addresses, use native unsigned pointer width
-        return 'J' if type == :pointer || type == :voidp
+        return 'J' if %i[pointer voidp].include?(type)
+
         raise Libcall::Error, "Unsupported array base type: #{type}"
       end
 
