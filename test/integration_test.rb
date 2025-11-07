@@ -250,6 +250,31 @@ class IntegrationTest < Test::Unit::TestCase
     assert_match(/\[0\] int\[5\] = \[0, 1, 2, 3, 4\]/, stdout)
   end
 
+  test 'callback argument: apply_i32 with addition proc' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
+                                          'apply_i32', 'int', '3', 'int', '5', 'func', "'int(int,int){|a,b| a+b}'", '-r', 'i32')
+    assert success, "Command should succeed: #{stderr}"
+    assert_equal '8', stdout
+  end
+
+  test 'callback alias keyword: apply_i32 with subtraction proc' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
+                                          'apply_i32', 'int', '10', 'int', '3', 'callback', "'int(int,int){|a,b| a-b}'", '-r', 'i32')
+    assert success, "Command should succeed: #{stderr}"
+    assert_equal '7', stdout
+  end
+
+  test 'cmp:int with qsort via sort_i32_copy returns sorted array' do
+    omit('fixture shared library is not available') unless fixture_lib_available?
+    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
+                                          'sort_i32_copy', 'int[]', '4,2,3,1', 'out:int[4]', 'size_t', '4', 'cmp:int', '-r', 'void')
+    assert success, "Command should succeed: #{stderr}"
+    assert_match(/Output parameters:/, stdout)
+    assert_match(/int\[4\] = \[1, 2, 3, 4\]/, stdout)
+  end
+
   test 'library search via env var (LD_LIBRARY_PATH/DYLD_LIBRARY_PATH)' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     require 'tmpdir'

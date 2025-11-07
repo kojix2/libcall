@@ -186,6 +186,44 @@ libcall -lc getrandom out:uchar[16] size_t 16 uint 0 -r long
 libcall -lSystem arc4random_buf out:uchar[16] size_t 16 -r void
 ```
 
+## Callbacks (experimental)
+
+Pass a C function pointer argument using a Ruby callback. Use the `func` (or `callback`) type with a quoted spec:
+
+- Syntax: `func 'RET(ARG,ARG){|a, b, ...| ruby_code }'` (alias: `callback 'RET(...)'{...}`)
+- Example: the fixture `libtest` exposes `int32_t apply_i32(int32_t a, int32_t b, int32_t (*op)(int32_t,int32_t))`.
+
+```sh
+# qsort (libc): void qsort(void* base, size_t nmemb, size_t size, int (*compar)(const void*, const void*))
+# Sort 4 ints in ascending order with a built-in comparator alias
+libcall -lc qsort \
+	int[] 4,2,3,1 \
+	size_t 4 \
+	size_t 4 \
+	cmp:int \
+	-r void
+# Note: qsort sorts the array in place and returns void.
+# For reverse order, use: cmp:int:desc
+```
+
+To inspect sorted results end-to-end, the test fixture exposes a helper that copies input to an output buffer and sorts it so the array is printed:
+
+```sh
+libcall -ltest -L test/fixtures/libtest/build sort_i32_copy \
+	int[] 4,2,3,1 \
+	out:int[4] \
+	size_t 4 \
+	cmp:int \
+	-r void
+# Output parameters:
+#   [1] int[4] = [1, 2, 3, 4]
+```
+
+Notes:
+- Types must match the C signature exactly. Currently integer and floating-point args/returns are supported best. Pointers are passed as numeric addresses.
+- The Ruby block runs inside the libcall process. Errors raised in the block will abort the call.
+- The callback object is kept alive for the duration of the call, but do not retain its pointer beyond the function invocation.
+
 ## Warning
 
 FFI calls are inherently unsafe. You must:

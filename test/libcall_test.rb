@@ -51,4 +51,16 @@ class LibcallTest < Test::Unit::TestCase
     assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(%i[array int])
     assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type([:out_array, :int, 3])
   end
+
+  test 'parser parses callback func spec' do
+    assert_equal :callback, Libcall::Parser.parse_type('func')
+    spec = Libcall::Parser.coerce_value(:callback, "'int(int,int){|a,b| a+b}'")
+    assert_equal({ kind: :callback, ret: :int, args: %i[int int], block: '{|a,b| a+b}' }, spec)
+  end
+
+  test "parser accepts 'callback' keyword alias" do
+    assert_equal :callback, Libcall::Parser.parse_type('callback')
+    spec = Libcall::Parser.coerce_value(:callback, "'int(int,int){|a,b| a-b}'")
+    assert_equal({ kind: :callback, ret: :int, args: %i[int int], block: '{|a,b| a-b}' }, spec)
+  end
 end

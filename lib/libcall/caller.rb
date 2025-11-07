@@ -18,6 +18,7 @@ module Libcall
       arg_types = []
       arg_values = []
       out_refs = []
+      closures = []
 
       arg_pairs.each_with_index do |(type_sym, value), idx|
         arg_types << TypeMap.to_fiddle_type(type_sym)
@@ -41,9 +42,45 @@ module Libcall
             ptr = TypeMap.allocate_array(base, count)
             out_refs << { index: idx, kind: :out_array, base: base, count: count, ptr: ptr }
             arg_values << ptr.to_i
+          when :cmp
+            base = type_sym[1]
+            order = type_sym[2]
+            ret_ty = Fiddle::TYPE_INT
+            arg_tys = [Fiddle::TYPE_VOIDP, Fiddle::TYPE_VOIDP]
+            closure = Fiddle::Closure::BlockCaller.new(ret_ty, arg_tys) do |pa, pb|
+              a_ptr = Fiddle::Pointer.new(pa)
+              b_ptr = Fiddle::Pointer.new(pb)
+              av = TypeMap.read_scalar(a_ptr, base)
+              bv = TypeMap.read_scalar(b_ptr, base)
+              cmp = av <=> bv
+              cmp = -cmp if order == :desc
+              cmp
+            end
+            arg_values << closure
+            # Keep closure alive
+            (closures ||= []) << closure
           else
             raise Error, "Unknown array/output form: #{type_sym.inspect}"
           end
+        elsif type_sym == :callback
+          spec = value
+          unless spec.is_a?(Hash) && spec[:kind] == :callback
+            raise Error, 'Invalid callback value; expected func signature and block'
+          end
+
+          ret_ty = TypeMap.to_fiddle_type(spec[:ret])
+          arg_tys = spec[:args].map { |a| TypeMap.to_fiddle_type(a) }
+          # Build Ruby proc from block source, e.g., "{|a,b| a+b}"
+          begin
+            ruby_proc = eval("proc #{spec[:block]}")
+          rescue SyntaxError => e
+            raise Error, "Invalid Ruby block for callback: #{e.message}"
+          end
+          closure = Fiddle::Closure::BlockCaller.new(ret_ty, arg_tys) do |*cb_args|
+            ruby_proc.call(*cb_args)
+          end
+          closures << closure # keep alive during call
+          arg_values << closure
         else
           arg_values << value
         end

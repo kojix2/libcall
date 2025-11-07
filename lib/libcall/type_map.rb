@@ -116,6 +116,9 @@ module Libcall
         return Fiddle::TYPE_VOIDP if %i[out array out_array].include?(tag)
       end
 
+      # Callback function pointers are passed as void*
+      return Fiddle::TYPE_VOIDP if type_sym == :callback
+
       case type_sym
       when :void then Fiddle::TYPE_VOID
       when :char then Fiddle::TYPE_CHAR
@@ -185,6 +188,11 @@ module Libcall
       else
         raise Error, "Cannot read output value for type: #{type_sym}"
       end
+    end
+
+    # Read a single scalar value at address (helper for callbacks)
+    def self.read_scalar(ptr, type_sym)
+      read_output_pointer(ptr, type_sym)
     end
 
     # Allocate memory for an array of base type and count elements

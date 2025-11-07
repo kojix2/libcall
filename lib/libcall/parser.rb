@@ -7,6 +7,22 @@ module Libcall
   class Parser
     # Pair-only API helpers
     def self.parse_type(type_str)
+      # Callback function pointer: func/callback 'ret(arg,...) { |...| ... }'
+      return :callback if %w[func callback].include?(type_str)
+
+      # Built-in comparator alias: cmp:TYPE[:asc|:desc]
+      if type_str.start_with?('cmp:')
+        m = type_str.match(/^cmp:(.+?)(?::(asc|desc))?$/)
+        raise Error, "Invalid cmp spec: #{type_str}" unless m
+
+        base = m[1]
+        order = (m[2] || 'asc').to_sym
+        base_sym = TypeMap.lookup(base)
+        raise Error, "Unknown cmp base type: #{base}" unless base_sym
+
+        return [:cmp, base_sym, order]
+      end
+
       # Output array spec: out:TYPE[N]
       if type_str.start_with?('out:') && type_str.match(/^out:(.+)\[(\d+)\]$/)
         base = Regexp.last_match(1)
@@ -51,6 +67,32 @@ module Libcall
     end
 
     def self.coerce_value(type_sym, token)
+      # Callback value: signature + Ruby block
+      if type_sym == :callback
+        src = strip_quotes(token.to_s)
+        m = src.match(/\A\s*([^(\s]+)\s*\(([^)]*)\)\s*(\{.*\})\s*\z/m)
+        raise Error, "Invalid callback spec: #{src}" unless m
+
+        ret_s = m[1].strip
+        args_s = m[2].strip
+        block_src = m[3]
+
+        ret_sym = TypeMap.lookup(ret_s)
+        raise Error, "Unknown callback return type: #{ret_s}" unless ret_sym
+
+        arg_syms = if args_s.empty?
+                     []
+                   else
+                     args_s.split(',').map(&:strip).map do |a|
+                       sym = TypeMap.lookup(a)
+                       raise Error, "Unknown callback arg type: #{a}" unless sym
+
+                       sym
+                     end
+                   end
+
+        return { kind: :callback, ret: ret_sym, args: arg_syms, block: block_src }
+      end
       # Input array values: comma-separated
       if type_sym.is_a?(Array) && type_sym.first == :array
         base = type_sym[1]
