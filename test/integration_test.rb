@@ -266,6 +266,24 @@ class IntegrationTest < Test::Unit::TestCase
     assert_equal '7', stdout
   end
 
+  test 'qsort via libc with callback DSL prints sorted out array' do
+    omit('libc path differs on this platform') if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+    libc = if RUBY_PLATFORM =~ /darwin/
+             '/usr/lib/libSystem.B.dylib'
+           else
+             '/lib/x86_64-linux-gnu/libc.so.6'
+           end
+  stdout, stderr, success = run_libcall(libc, 'qsort',
+                      'out:int[4]', '4,2,3,1',
+                                          'size_t', '4',
+                                          'size_t', '4',
+                                          'callback', "'int(void*,void*){|pa,pb| int(pa) <=> int(pb) }'",
+                                          '-r', 'void')
+    assert success, "Command should succeed: #{stderr}"
+    assert_match(/Output parameters:/, stdout)
+    assert_match(/int\[4\] = \[1, 2, 3, 4\]/, stdout)
+  end
+
   test 'library search via env var (LD_LIBRARY_PATH/DYLD_LIBRARY_PATH)' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     require 'tmpdir'

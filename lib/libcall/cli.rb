@@ -156,8 +156,17 @@ module Libcall
         type_sym = Parser.parse_type(type_tok)
 
         # TYPE that represents an output pointer/array does not require a value
+        # For out:TYPE[N], allow an optional comma-separated initializer list right after the type.
         if type_sym.is_a?(Array) && %i[out out_array].include?(type_sym.first)
-          arg_pairs << [type_sym, nil]
+          if type_sym.first == :out_array && i < argv.length && argv[i].include?(',')
+            init_tok = argv[i]
+            i += 1
+            base = type_sym[1]
+            values = Parser.coerce_value([:array, base], init_tok)
+            arg_pairs << [type_sym, values]
+          else
+            arg_pairs << [type_sym, nil]
+          end
           next
         end
 

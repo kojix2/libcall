@@ -36,6 +36,11 @@ module Libcall
       'ulong' => :ulong,
       'float' => :float,
       'double' => :double,
+      # C-style pointer aliases
+      'void*' => :voidp,
+      'const void*' => :voidp,
+      'const_void*' => :voidp,
+      'const_voidp' => :voidp,
       # Underscored variants
       'unsigned_char' => :uchar,
       'unsigned_short' => :ushort,

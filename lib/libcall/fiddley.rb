@@ -8,6 +8,39 @@ require 'fiddle'
 
 module Libcall
   module Fiddley
+    # Small helper methods intended for use inside callback blocks
+    module DSL
+      module_function
+
+      def ptr(x)
+        Fiddle::Pointer.new(Integer(x))
+      end
+
+      def read(type, p)
+        t = type.is_a?(Symbol) ? type : type.to_s
+        t_sym = Libcall::TypeMap.lookup(t) || (type.is_a?(Symbol) ? type : nil)
+        raise Libcall::Error, "unknown read type: #{type}" unless t_sym
+
+        pp = p.is_a?(Fiddle::Pointer) ? p : Fiddle::Pointer.new(Integer(p))
+        Libcall::TypeMap.read_output_pointer(pp, t_sym)
+      end
+
+      # Typed short-hands
+      def char(p) = read(:char, p)
+      def uchar(p) = read(:uchar, p)
+      def short(p) = read(:short, p)
+      def ushort(p) = read(:ushort, p)
+      def int(p) = read(:int, p)
+      def uint(p) = read(:uint, p)
+      def long(p) = read(:long, p)
+      def ulong(p) = read(:ulong, p)
+      def long_long(p) = read(:long_long, p)
+      def ulong_long(p) = read(:ulong_long, p)
+      def float(p) = read(:float, p)
+      def double(p) = read(:double, p)
+      def cstr(p) = read(:string, p)
+    end
+
     module Utils
       module_function
 

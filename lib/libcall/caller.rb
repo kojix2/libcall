@@ -40,6 +40,12 @@ module Libcall
             base = type_sym[1]
             count = type_sym[2]
             ptr = TypeMap.allocate_array(base, count)
+            # Optional initializer values
+            if value
+              vals = Array(value)
+              raise Error, "Initializer length #{vals.length} does not match out array size #{count}" unless vals.length == count
+              TypeMap.write_array(ptr, base, vals)
+            end
             out_refs << { index: idx, kind: :out_array, base: base, count: count, ptr: ptr }
             arg_values << ptr.to_i
           else
@@ -54,13 +60,24 @@ module Libcall
           ret_ty = TypeMap.to_fiddle_type(spec[:ret])
           arg_tys = spec[:args].map { |a| TypeMap.to_fiddle_type(a) }
           # Build Ruby proc from block source, e.g., "{|a,b| a+b}"
+          # Evaluate proc in a helper context so DSL methods are available
+          ctx = Object.new.extend(Libcall::Fiddley::DSL)
           begin
-            ruby_proc = eval("proc #{spec[:block]}")
+            ruby_proc = ctx.instance_eval("proc #{spec[:block]}", __FILE__, __LINE__)
           rescue SyntaxError => e
             raise Error, "Invalid Ruby block for callback: #{e.message}"
           end
           closure = Fiddle::Closure::BlockCaller.new(ret_ty, arg_tys) do |*cb_args|
-            ruby_proc.call(*cb_args)
+            # Convert pointer-typed args to Fiddle::Pointer for convenience
+            cooked = cb_args.each_with_index.map do |v, i|
+              at = spec[:args][i]
+              if at == :voidp
+                Fiddle::Pointer.new(v)
+              else
+                v
+              end
+            end
+            ruby_proc.call(*cooked)
           end
           closures << closure # keep alive during call
           arg_values << closure
