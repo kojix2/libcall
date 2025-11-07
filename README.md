@@ -23,13 +23,11 @@ libcall [OPTIONS] <LIBRARY> <FUNCTION> (TYPE VALUE)...
 ### Quick Examples
 
 ```sh
-# TYPE VALUE pairs
-libcall -lm -r f64 sqrt double 16
-# => 4.0
+libcall -lm sqrt double 16 -r double # => 4.0
+```
 
-# libc strlen
-libcall -lc strlen string "hello" -r usize
-# => 5
+```sh
+libcall -lc strlen string "hello" -r usize # => 5
 ```
 
 ### Argument Syntax
@@ -76,25 +74,51 @@ Library search:
 
 ### More Examples
 
+TYPE/VALUE pairs with `-r` before function
+
 ```sh
-# JSON output
-libcall --json -lm sqrt double 9.0 -r f64
+libcall -lm  -r double fabs double -5.5 # => 5.5
+```
 
-# Dry run
-libcall --dry-run -lc getpid -r int
+Output parameter with libm
 
-# Output parameter with libm
+```sh
 libcall -lm modf double -3.14 out:double -r f64
+# Result: -0.14000000000000012
+# Output parameters:
+#   [1] double = -3.0
+```
 
-# TYPE/VALUE pairs with -r after function
-libcall -lm fabs double -5.5 -r f64
-# => 5.5
+JSON output
 
-# Windows: calling C runtime functions
-libcall msvcrt.dll sqrt double 16.0 -r f64
-# => 4.0
+```sh
+libcall --json -lm sqrt double 9.0 -r f64
+# {
+#   "library": "/lib/x86_64-linux-gnu/libm.so",
+#   "function": "sqrt",
+#   "return_type": "double",
+#   "result": 3.0
+# }
+```
 
-# Windows: accessing environment variables
+Dry run
+
+```sh
+libcall --dry-run -lc getpid -r int
+# Library:  /lib/x86_64-linux-gnu/libc.so
+# Function: getpid
+# Return:   int
+```
+
+Windows: calling C runtime functions
+
+```powershell
+libcall msvcrt.dll sqrt double 16.0 -r f64 # => 4.0
+```
+
+Windows: accessing environment variables
+
+```powershell
 libcall msvcrt.dll getenv string "PATH" -r cstr
 ```
 
@@ -118,6 +142,8 @@ Also supported:
 - `string`: C string argument (char\*)
 - `cstr`: C string return (char\*)
 - `ptr`/`pointer`: void\* pointer
+
+See [type_map.rb](lib/libcall/type_map.rb) for all available type mappings.
 
 ## pkg-config Support
 
