@@ -12,8 +12,6 @@ Call C functions in shared libraries from the command line.
 gem install libcall
 ```
 
-**Windows**: Supports DLLs (e.g., `msvcrt.dll`, `kernel32.dll`). Searches in System32, PATH, and MSYS2/MinGW directories. For building custom DLLs, RubyInstaller with DevKit is recommended.
-
 ## Usage
 
 ```sh
@@ -108,18 +106,6 @@ libcall --dry-run -lc getpid -r int
 # Library:  /lib/x86_64-linux-gnu/libc.so
 # Function: getpid
 # Return:   int
-```
-
-Windows: calling C runtime functions
-
-```powershell
-libcall msvcrt.dll sqrt double 16.0 -r f64 # => 4.0
-```
-
-Windows: accessing environment variables
-
-```powershell
-libcall msvcrt.dll getenv string "PATH" -r cstr
 ```
 
 ## Type Reference
@@ -232,6 +218,22 @@ FFI calls are inherently unsafe. You must:
 - Understand ABI compatibility
 
 Incorrect usage can crash your program.
+
+## Windows Support
+
+Supports DLLs (e.g., `msvcrt.dll`, `kernel32.dll`). Searches in System32, PATH, and MSYS2/MinGW directories. For building custom DLLs, RubyInstaller with DevKit is recommended.
+
+### Windows Examples
+
+```powershell
+# Calling C runtime functions
+libcall msvcrt.dll sqrt double 16.0 -r f64 # => 4.0
+```
+
+```powershell
+# Accessing environment variables
+libcall msvcrt.dll getenv string "PATH" -r cstr
+```
 
 ## Development
 
