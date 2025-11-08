@@ -12,12 +12,6 @@ Call C functions in shared libraries from the command line.
 gem install libcall
 ```
 
-## Usage
-
-```sh
-libcall [OPTIONS] <LIBRARY> <FUNCTION> (TYPE VALUE)...
-```
-
 ### Quick Examples
 
 ```sh
@@ -28,30 +22,10 @@ libcall -lm sqrt double 16 -r double # => 4.0
 libcall -lc strlen string "hello" -r usize # => 5
 ```
 
-### Argument Syntax
-
-Pass arguments as TYPE VALUE pairs (single-token suffix style has been removed):
-
-- Examples: `int 10`, `double -3.14`, `string "hello"`
-- Negative values are safe (not treated as options): `int -23`
-
-Pointers and null:
-
-- Use `ptr` (or `pointer`) to pass raw addresses as integers
-- Use `null`, `nil`, `NULL`, or `0` to pass a null pointer
+## Usage
 
 ```sh
-# Pass a null pointer to a function taking const char*
-libcall -ltest str_length ptr null -r i32
-# => 0
-```
-
-End of options `--`:
-
-- Use `--` to stop option parsing if a value starts with `-`
-
-```sh
-libcall -lc getenv string -- -r -r cstr
+libcall [OPTIONS] <LIBRARY> <FUNCTION> (TYPE VALUE)...
 ```
 
 ### Options
@@ -71,12 +45,6 @@ Library search:
 - On Linux and macOS, `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` are honored
 
 ### More Examples
-
-TYPE/VALUE pairs with `-r` before function
-
-```sh
-libcall -lm  -r double fabs double -5.5 # => 5.5
-```
 
 Output parameter with libm
 
@@ -130,6 +98,32 @@ Also supported:
 - `ptr`/`pointer`: void\* pointer
 
 See [type_map.rb](lib/libcall/type_map.rb) for all available type mappings.
+
+### Argument Syntax
+
+Pass arguments as TYPE VALUE pairs (single-token suffix style has been removed):
+
+- Examples: `int 10`, `double -3.14`, `string "hello"`
+- Negative values are safe (not treated as options): `int -23`
+
+Pointers and null:
+
+- Use `ptr` (or `pointer`) to pass raw addresses as integers
+- Use `null`, `nil`, `NULL`, or `0` to pass a null pointer
+
+```sh
+# Pass a null pointer to a function taking const char*
+libcall -ltest str_length ptr null -r i32
+# => 0
+```
+
+End of options `--`:
+
+- Use `--` to stop option parsing if a value starts with `-`
+
+```sh
+libcall -lc getenv string -- -r -r cstr
+```
 
 ## pkg-config Support
 
