@@ -273,8 +273,8 @@ class IntegrationTest < Test::Unit::TestCase
            else
              '/lib/x86_64-linux-gnu/libc.so.6'
            end
-  stdout, stderr, success = run_libcall(libc, 'qsort',
-                      'out:int[4]', '4,2,3,1',
+    stdout, stderr, success = run_libcall(libc, 'qsort',
+                                          'out:int[4]', '4,2,3,1',
                                           'size_t', '4',
                                           'size_t', '4',
                                           'callback', "'int(void*,void*){|pa,pb| int(pa) <=> int(pb) }'",

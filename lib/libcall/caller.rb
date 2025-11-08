@@ -43,7 +43,11 @@ module Libcall
             # Optional initializer values
             if value
               vals = Array(value)
-              raise Error, "Initializer length #{vals.length} does not match out array size #{count}" unless vals.length == count
+              unless vals.length == count
+                raise Error,
+                      "Initializer length #{vals.length} does not match out array size #{count}"
+              end
+
               TypeMap.write_array(ptr, base, vals)
             end
             out_refs << { index: idx, kind: :out_array, base: base, count: count, ptr: ptr }

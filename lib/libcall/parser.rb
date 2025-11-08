@@ -57,6 +57,7 @@ module Libcall
       # Callback value: signature + Ruby block
       if type_sym == :callback
         src = strip_quotes(token.to_s)
+        # ret(arglist){ ... } where ret token is any non-space, non-'(' sequence
         m = src.match(/\A\s*([^(\s]+)\s*\(([^)]*)\)\s*(\{.*\})\s*\z/m)
         raise Error, "Invalid callback spec: #{src}" unless m
 
@@ -67,16 +68,33 @@ module Libcall
         ret_sym = TypeMap.lookup(ret_s)
         raise Error, "Unknown callback return type: #{ret_s}" unless ret_sym
 
-        arg_syms = if args_s.empty?
-                     []
-                   else
-                     args_s.split(',').map(&:strip).map do |a|
-                       sym = TypeMap.lookup(a)
-                       raise Error, "Unknown callback arg type: #{a}" unless sym
+        arg_syms = []
+        arg_names = []
 
-                       sym
-                     end
-                   end
+        unless args_s.empty?
+          args_s.split(',').each do |raw|
+            a = raw.strip
+            # Allow optional parameter name after type: e.g., "void* pa" or "const void* pb"
+            if a =~ /\A(.+?)\s+([A-Za-z_][A-Za-z0-9_]*)\z/
+              type_part = Regexp.last_match(1).strip
+              name_part = Regexp.last_match(2)
+            else
+              type_part = a
+              name_part = nil
+            end
+
+            sym = TypeMap.lookup(type_part)
+            raise Error, "Unknown callback arg type: #{a}" unless sym
+
+            arg_syms << sym
+            arg_names << name_part if name_part
+          end
+        end
+
+        # If all args have names and the block has no explicit parameters, inject them.
+        if !arg_names.empty? && arg_names.size == arg_syms.size && block_src !~ /\{\s*\|/
+          block_src = block_src.sub(/\{\s*/) { "{|#{arg_names.join(',')}| " }
+        end
 
         return { kind: :callback, ret: ret_sym, args: arg_syms, block: block_src }
       end

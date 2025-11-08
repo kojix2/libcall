@@ -36,4 +36,29 @@ class ParserEdgeCasesTest < Test::Unit::TestCase
     assert_equal 0, Libcall::Parser.coerce_value(:voidp, 'nil')
     assert_equal 0, Libcall::Parser.coerce_value(:voidp, '0')
   end
+
+  test 'callback with named params injects block args when omitted' do
+    token = 'int(void* a, void* b){ a <=> b }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal :callback, cb[:kind]
+    assert_equal :int, cb[:ret]
+    assert_equal %i[voidp voidp], cb[:args]
+    assert_match(/\{\|a,b\|/, cb[:block])
+  end
+
+  test 'callback with explicit block params is not modified' do
+    token = 'int(void* a, void* b){|x,y| x }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal :int, cb[:ret]
+    assert_equal %i[voidp voidp], cb[:args]
+    assert_match(/\{\|x,y\| x \}/, cb[:block])
+  end
+
+  test 'callback without names keeps block as-is' do
+    token = 'int(void*, void*){ foo }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal %i[voidp voidp], cb[:args]
+    # No injection because names are missing
+    assert_no_match(/\{\|/, cb[:block])
+  end
 end
