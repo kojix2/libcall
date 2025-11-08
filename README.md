@@ -192,7 +192,7 @@ libcall -lc qsort \
 	out:int[4] 4,2,3,1 \
 	size_t 4 \
 	size_t 4 \
-	callback 'int(void*,void*){|pa,pb| int(pa) <=> int(pb) }' \
+	callback 'int(void* a, void* b){ int(a) <=> int(b) }' \
 	-r void
 # Output parameters:
 #   [0] int[4] = [1, 2, 3, 4]
