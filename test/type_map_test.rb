@@ -3,7 +3,11 @@
 require 'test_helper'
 
 class TypeMapTest < Test::Unit::TestCase
-  test 'lookup returns correct type symbols for short type names' do
+  # ========================================
+  # Type lookup tests
+  # ========================================
+
+  test 'lookup returns correct type symbols for short type names (Rust-like)' do
     assert_equal :char, Libcall::TypeMap.lookup('i8')
     assert_equal :uchar, Libcall::TypeMap.lookup('u8')
     assert_equal :short, Libcall::TypeMap.lookup('i16')
@@ -72,6 +76,20 @@ class TypeMapTest < Test::Unit::TestCase
     assert_nil Libcall::TypeMap.lookup('')
   end
 
+  test 'MAP contains all expected type aliases' do
+    # Verify we have multiple ways to specify the same type
+    assert_equal Libcall::TypeMap.lookup('int'), Libcall::TypeMap.lookup('i32')
+    assert_equal Libcall::TypeMap.lookup('int'), Libcall::TypeMap.lookup('int32')
+    assert_equal Libcall::TypeMap.lookup('float'), Libcall::TypeMap.lookup('f32')
+    assert_equal Libcall::TypeMap.lookup('float'), Libcall::TypeMap.lookup('float32')
+    assert_equal Libcall::TypeMap.lookup('double'), Libcall::TypeMap.lookup('f64')
+    assert_equal Libcall::TypeMap.lookup('double'), Libcall::TypeMap.lookup('float64')
+  end
+
+  # ========================================
+  # Type checking predicates
+  # ========================================
+
   test 'integer_type? returns true for integer types' do
     assert_true Libcall::TypeMap.integer_type?(:int)
     assert_true Libcall::TypeMap.integer_type?(:uint)
@@ -106,6 +124,10 @@ class TypeMapTest < Test::Unit::TestCase
     assert_false Libcall::TypeMap.float_type?(:string)
   end
 
+  # ========================================
+  # Fiddle type conversion
+  # ========================================
+
   test 'to_fiddle_type returns correct Fiddle types for basic types' do
     assert_equal Fiddle::TYPE_VOID, Libcall::TypeMap.to_fiddle_type(:void)
     assert_equal Fiddle::TYPE_CHAR, Libcall::TypeMap.to_fiddle_type(:char)
@@ -124,24 +146,15 @@ class TypeMapTest < Test::Unit::TestCase
     assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(:string)
   end
 
-  test 'sizeof returns expected sizes for select types' do
-    assert_equal Fiddle::SIZEOF_INT, Libcall::TypeMap.sizeof(:int)
-    assert_equal Fiddle::SIZEOF_DOUBLE, Libcall::TypeMap.sizeof(:double)
-    assert_equal Fiddle::SIZEOF_VOIDP, Libcall::TypeMap.sizeof(:voidp)
-    assert_equal Fiddle::SIZEOF_VOIDP, Libcall::TypeMap.sizeof(:string)
-  end
-
-  test 'to_fiddle_type returns VOIDP for output parameters' do
-    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(%i[out int])
-    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(%i[out double])
-    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(%i[out char])
-  end
-
   test 'to_fiddle_type raises error for unknown types' do
     assert_raise(Libcall::Error) do
       Libcall::TypeMap.to_fiddle_type(:unknown)
     end
   end
+
+  # ========================================
+  # Constant immutability
+  # ========================================
 
   test 'MAP is frozen' do
     assert_true Libcall::TypeMap::MAP.frozen?
@@ -155,13 +168,24 @@ class TypeMapTest < Test::Unit::TestCase
     assert_true Libcall::TypeMap::FLOAT_TYPES.frozen?
   end
 
-  test 'MAP contains all expected type aliases' do
-    # Verify we have multiple ways to specify the same type
-    assert_equal Libcall::TypeMap.lookup('int'), Libcall::TypeMap.lookup('i32')
-    assert_equal Libcall::TypeMap.lookup('int'), Libcall::TypeMap.lookup('int32')
-    assert_equal Libcall::TypeMap.lookup('float'), Libcall::TypeMap.lookup('f32')
-    assert_equal Libcall::TypeMap.lookup('float'), Libcall::TypeMap.lookup('float32')
-    assert_equal Libcall::TypeMap.lookup('double'), Libcall::TypeMap.lookup('f64')
-    assert_equal Libcall::TypeMap.lookup('double'), Libcall::TypeMap.lookup('float64')
+  # ========================================
+  # Type size queries
+  # ========================================
+
+  test 'sizeof returns expected sizes for select types' do
+    assert_equal Fiddle::SIZEOF_INT, Libcall::TypeMap.sizeof(:int)
+    assert_equal Fiddle::SIZEOF_DOUBLE, Libcall::TypeMap.sizeof(:double)
+    assert_equal Fiddle::SIZEOF_VOIDP, Libcall::TypeMap.sizeof(:voidp)
+    assert_equal Fiddle::SIZEOF_VOIDP, Libcall::TypeMap.sizeof(:string)
+  end
+
+  # ========================================
+  # Array and output parameter support
+  # ========================================
+
+  test 'to_fiddle_type returns VOIDP for output parameters' do
+    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(%i[out int])
+    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(%i[out double])
+    assert_equal Fiddle::TYPE_VOIDP, Libcall::TypeMap.to_fiddle_type(%i[out char])
   end
 end
