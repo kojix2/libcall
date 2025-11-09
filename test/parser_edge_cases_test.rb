@@ -59,4 +59,39 @@ class ParserEdgeCasesTest < Test::Unit::TestCase
     assert_equal %i[voidp voidp], cb[:args]
     assert_no_match(/\{\|/, cb[:block])
   end
+
+  test 'callback with partial naming: first arg named, second unnamed does not inject' do
+    token = 'int(int a, int){ a + 1 }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal %i[int int], cb[:args]
+    # names_with_nils = ['a', nil] so not all are truthy; no injection
+    assert_no_match(/\{\|/, cb[:block])
+    assert_equal '{ a + 1 }', cb[:block]
+  end
+
+  test 'callback with partial naming: first arg unnamed, second named does not inject' do
+    token = 'int(int, int b){ b * 2 }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal %i[int int], cb[:args]
+    # names_with_nils = [nil, 'b'] so not all are truthy; no injection
+    assert_no_match(/\{\|/, cb[:block])
+    assert_equal '{ b * 2 }', cb[:block]
+  end
+
+  test 'callback with partial naming: middle arg unnamed does not inject' do
+    token = 'int(int a, int, int c){ a + c }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal %i[int int int], cb[:args]
+    # names_with_nils = ['a', nil, 'c'] so not all are truthy; no injection
+    assert_no_match(/\{\|/, cb[:block])
+    assert_equal '{ a + c }', cb[:block]
+  end
+
+  test 'callback zero args with empty parens does not inject' do
+    token = 'void(){ puts "hello" }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal :void, cb[:ret]
+    assert_equal [], cb[:args]
+    assert_no_match(/\{\|/, cb[:block])
+  end
 end
