@@ -98,17 +98,17 @@ libcall supports multiple naming conventions for types, making it easy to work w
 
 ### Floating Point Types
 
-| Short | C Standard | Alternative | Size    | Precision  |
-| ----- | ---------- | ----------- | ------- | ---------- |
-| `f32` | `float`    | `float32`   | 4 bytes | ~7 digits  |
-| `f64` | `double`   | `float64`   | 8 bytes | ~15 digits |
+| Short | C Standard | Alternative | Size    |
+| ----- | ---------- | ----------- | ------- |
+| `f32` | `float`    | `float32`   | 4 bytes |
+| `f64` | `double`   | `float64`   | 8 bytes |
 
 ### Pointer Types
 
-| Type                        | Description           | Usage                          |
-| --------------------------- | --------------------- | ------------------------------ |
-| `ptr` / `pointer` / `voidp` | Generic pointer (void*) | For arbitrary memory addresses |
-| `string` / `cstr` / `str`   | C string (char*)      | For passing/returning strings  |
+| Type                        | Description              | Usage                          |
+| --------------------------- | ------------------------ | ------------------------------ |
+| `ptr` / `pointer` / `voidp` | Generic pointer (void\*) | For arbitrary memory addresses |
+| `string` / `cstr` / `str`   | C string (char\*)        | For passing/returning strings  |
 
 **Null pointer values**: Use `null`, `NULL`, `nil`, or `0` to pass a null pointer.
 
@@ -143,10 +143,10 @@ out:string    # Output string pointer (char**)
 
 ### Callback Types
 
-| Keyword    | Description                 | Example              |
-| ---------- | --------------------------- | -------------------- | --- | ------ |
+| Keyword    | Description                 | Example                          |
+| ---------- | --------------------------- | -------------------------------- |
 | `func`     | Function pointer (callback) | `func 'int(int a,int b){ a+b }'` |
-| `callback` | Alias for `func`            | Same as above        |
+| `callback` | Alias for `func`            | Same as above                    |
 
 ### Argument Syntax
 
