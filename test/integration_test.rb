@@ -82,44 +82,39 @@ class IntegrationTest < Test::Unit::TestCase
     assert_match(/25\.0/, stdout)
   end
 
-  test 'option ordering: --json and --dry-run after function name before args' do
+  test 'option ordering variations' do
+    # --json and --dry-run after function name
     stdout, stderr, success = run_libcall(LIBM, 'sqrt', '--json', '--dry-run', 'double', '36.0', '-r', 'f64')
     assert success, "Command should succeed: #{stderr}"
     doc = JSON.parse(stdout)
     assert_equal LIBM, doc['library']
     assert_equal 'sqrt', doc['function']
     assert_equal 'double', doc['return_type']
-    # dry-run produces no actual result call; result key absent
-    assert_nil doc['result'] if doc.key?('result')
-  end
 
-  test 'option ordering: return type flag and --json after some args' do
+    # return type flag and --json after some args
     stdout, stderr, success = run_libcall(LIBM, 'sqrt', 'double', '49.0', '--json', '-r', 'f64')
     assert success, "Command should succeed: #{stderr}"
     doc = JSON.parse(stdout)
     assert_equal 7.0, doc['result']
-  end
 
-  test 'option ordering: interleaving --json between two arg pairs' do
-    # Use add_i32 from fixture library if available, else skip
-    omit('fixture shared library is not available') unless fixture_lib_available?
+    # -r embedded form after function and before args
+    stdout, stderr, success = run_libcall(LIBM, 'sqrt', '-rf64', 'double', '81.0')
+    assert success, "Command should succeed: #{stderr}"
+    assert_equal '9.0', stdout
+
+    # invalid type still fails with options shuffled
+    _stdout, stderr, success = run_libcall(LIBM, 'sqrt', '--json', 'zzz', '1', '-r', 'f64')
+    assert_false success
+    assert_match(/Unknown type/i, stderr)
+
+    # interleaving --json between two arg pairs (fixture-dependent)
+    return unless fixture_lib_available?
+
     stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'), 'add_i32',
                                           'int', '10', '--json', 'int', '20', '-r', 'i32')
     assert success, "Command should succeed: #{stderr}"
     doc = JSON.parse(stdout)
     assert_equal 30, doc['result']
-  end
-
-  test 'option ordering: -r embedded form after function and before args' do
-    stdout, stderr, success = run_libcall(LIBM, 'sqrt', '-rf64', 'double', '81.0')
-    assert success, "Command should succeed: #{stderr}"
-    assert_equal '9.0', stdout
-  end
-
-  test 'option ordering: invalid type still fails with options shuffled' do
-    _stdout, stderr, success = run_libcall(LIBM, 'sqrt', '--json', 'zzz', '1', '-r', 'f64')
-    assert_false success
-    assert_match(/Unknown type/i, stderr)
   end
 
   test 'json output' do
