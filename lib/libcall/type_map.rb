@@ -136,6 +136,8 @@ module Libcall
       when :float then Fiddle::TYPE_FLOAT
       when :double then Fiddle::TYPE_DOUBLE
       when :voidp, :string then Fiddle::TYPE_VOIDP
+      when :size_t then Fiddle::TYPE_SIZE_T
+      when :pointer then Fiddle::TYPE_VOIDP
       else
         raise Error, "Unknown Fiddle type: #{type_sym}"
       end
@@ -151,7 +153,8 @@ module Libcall
       when :long_long, :ulong_long then Fiddle::SIZEOF_LONG_LONG
       when :float then Fiddle::SIZEOF_FLOAT
       when :double then Fiddle::SIZEOF_DOUBLE
-      when :voidp, :string then Fiddle::SIZEOF_VOIDP
+      when :voidp, :string, :pointer then Fiddle::SIZEOF_VOIDP
+      when :size_t then Fiddle::SIZEOF_SIZE_T
       else
         raise Error, "Cannot get size for type: #{type_sym}"
       end
@@ -234,6 +237,8 @@ module Libcall
       when :ulong_long then 'Q'
       when :float then 'f'
       when :double then 'd'
+      when :size_t then (Fiddle::SIZEOF_VOIDP == Fiddle::SIZEOF_LONG ? 'L!' : 'Q')
+      when :pointer, :voidp then 'J'
       else
         raise Error, "Unsupported array base type: #{base_type}"
       end

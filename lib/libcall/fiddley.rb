@@ -44,42 +44,26 @@ module Libcall
     module Utils
       module_function
 
-      # Native size_t pack template and size
-      SIZET_PACK = (Fiddle::SIZEOF_VOIDP == Fiddle::SIZEOF_LONG ? 'L!' : 'Q')
-
       # Return size in bytes for a given type symbol.
-      # Falls back to pointer size for :pointer and :voidp.
-      def sizeof(type)
-        return Fiddle::SIZEOF_SIZE_T if type == :size_t
-        return Fiddle::SIZEOF_VOIDP if %i[pointer voidp].include?(type)
 
-        # Delegate to Libcall::TypeMap when possible
+      def sizeof(type)
         Libcall::TypeMap.sizeof(type)
-      rescue StandardError
-        raise Libcall::Error, "unknown type for sizeof: #{type}"
+      rescue StandardError => e
+        raise Libcall::Error, "unknown type for sizeof: #{type} (#{e.message})"
       end
 
       # Convert a type symbol to a Fiddle type constant.
       def to_fiddle_type(type)
-        return Fiddle::TYPE_SIZE_T if type == :size_t
-        return Fiddle::TYPE_VOIDP if %i[pointer voidp].include?(type)
-
         Libcall::TypeMap.to_fiddle_type(type)
-      rescue StandardError
-        raise Libcall::Error, "unknown type for to_fiddle_type: #{type}"
+      rescue StandardError => e
+        raise Libcall::Error, "unknown type for to_fiddle_type: #{type} (#{e.message})"
       end
 
       # Pack template for array values of given base type.
       def array_pack_template(type)
-        return SIZET_PACK if type == :size_t
-
-        # Use TypeMap's packing for standard types
         Libcall::TypeMap.pack_template(type)
-      rescue StandardError
-        # For generic pointers/addresses, use native unsigned pointer width
-        return 'J' if %i[pointer voidp].include?(type)
-
-        raise Libcall::Error, "Unsupported array base type: #{type}"
+      rescue StandardError => e
+        raise Libcall::Error, "Unsupported array base type: #{type} (#{e.message})"
       end
 
       # Convert Ruby array of numbers to a binary string for the given type
