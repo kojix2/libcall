@@ -150,29 +150,15 @@ out:string    # Output string pointer (char**)
 
 ### Argument Syntax
 
-Pass arguments as TYPE VALUE pairs (single-token suffix style has been removed):
-
-- Examples: `int 10`, `double -3.14`, `string "hello"`
-- Negative values are safe (not treated as options): `int -23`
-
-Pointers and null:
-
-- Use `ptr` (or `pointer`) to pass raw addresses as integers
-- Use `null`, `nil`, `NULL`, or `0` to pass a null pointer
+Pass arguments as TYPE VALUE pairs:
 
 ```sh
-# Pass a null pointer to a function taking const char*
-libcall -ltest str_length ptr null -r i32
-# => 0
+libcall -lm sqrt double 16.0 -r f64
+libcall -lc strlen string "hello" -r usize
 ```
 
-End of options `--`:
-
-- Use `--` to stop option parsing if a value starts with `-`
-
-```sh
-libcall -lc getenv string -- -r -r cstr
-```
+- Null pointers: Use `null`, `NULL`, `nil`, or `0`
+- Negative numbers work as expected (e.g., `double -3.14`)
 
 ## pkg-config Support
 
