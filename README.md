@@ -78,26 +78,79 @@ libcall --dry-run -lc getpid -r int
 
 ## Type Reference
 
-| Short (suffix) | Formal (C)                          | Note/Range         |
-| -------------- | ----------------------------------- | ------------------ |
-| `i8`           | `char` (≈ `int8_t`)                 | -128 to 127        |
-| `u8`           | `unsigned char` (≈ `uint8_t`)       | 0 to 255           |
-| `i16`          | `short` (≈ `int16_t`)               | -32768 to 32767    |
-| `u16`          | `unsigned short` (≈ `uint16_t`)     | 0 to 65535         |
-| `i32`          | `int` (≈ `int32_t`)                 | typical 32-bit int |
-| `u32`          | `unsigned int` (≈ `uint32_t`)       | unsigned 32-bit    |
-| `i64`          | `long long` (≈ `int64_t`)           | 64-bit             |
-| `u64`          | `unsigned long long` (≈ `uint64_t`) | 64-bit             |
-| `f32`          | `float`                             | single precision   |
-| `f64`          | `double`                            | double precision   |
+libcall supports multiple naming conventions for types, making it easy to work with C libraries.
 
-Also supported:
+### Integer Types
 
-- `string`: C string argument (char\*)
-- `cstr`: C string return (char\*)
-- `ptr`/`pointer`: void\* pointer
+| Short (Rust-like) | C Standard                 | C99/stdint.h           | Size               |
+| ----------------- | -------------------------- | ---------------------- | ------------------ |
+| `i8` / `u8`       | `char` / `uchar`           | `int8_t` / `uint8_t`   | 1 byte             |
+| `i16` / `u16`     | `short` / `ushort`         | `int16_t` / `uint16_t` | 2 bytes            |
+| `i32` / `u32`     | `int` / `uint`             | `int32_t` / `uint32_t` | 4 bytes            |
+| `i64` / `u64`     | `long_long` / `ulong_long` | `int64_t` / `uint64_t` | 8 bytes            |
+| `isize` / `usize` | `long` / `ulong`           | `ssize_t` / `size_t`   | platform-dependent |
 
-See [type_map.rb](lib/libcall/type_map.rb) for all available type mappings.
+**Alternative names**: You can use any of these:
+
+- C-style: `char`, `short`, `int`, `long`, `unsigned_int`, etc.
+- stdint-style: `int8`, `int16`, `int32`, `int64`, `uint8`, `uint16`, etc.
+- With `_t` suffix: `int8_t`, `uint8_t`, `int32_t`, `size_t`, etc.
+
+### Floating Point Types
+
+| Short | C Standard | Alternative | Size    | Precision  |
+| ----- | ---------- | ----------- | ------- | ---------- |
+| `f32` | `float`    | `float32`   | 4 bytes | ~7 digits  |
+| `f64` | `double`   | `float64`   | 8 bytes | ~15 digits |
+
+### Pointer Types
+
+| Type      | Description                | Usage                            |
+| --------- | -------------------------- | -------------------------------- |
+| `ptr`     | Generic pointer (void\*)   | For arbitrary memory addresses   |
+| `pointer` | Alias for `ptr`            | Same as `ptr`                    |
+| `voidp`   | Void pointer               | Same as `ptr`                    |
+| `string`  | C string argument (char\*) | For passing strings to functions |
+| `cstr`    | C string return (char\*)   | For return values only           |
+| `str`     | Alias for `string`         | Same as `string`                 |
+
+**Null pointer values**: Use `null`, `NULL`, `nil`, or `0` to pass a null pointer.
+
+### Special Types
+
+| Type                     | Description                 | Alternative names    |
+| ------------------------ | --------------------------- | -------------------- |
+| `void`                   | No value (return type only) | —                    |
+| `size_t`                 | Platform size type          | `usize` (unsigned)   |
+| `ssize_t`                | Signed size type            | `isize` (signed)     |
+| `intptr_t` / `uintptr_t` | Pointer-sized integer       | `intptr` / `uintptr` |
+| `ptrdiff_t`              | Pointer difference type     | —                    |
+| `bool`                   | Boolean (as int)            | —                    |
+
+### Output Parameters
+
+Prefix any type with `out:` to create an output parameter:
+
+```sh
+out:int       # Output integer pointer (int*)
+out:double    # Output double pointer (double*)
+out:string    # Output string pointer (char**)
+```
+
+### Array Types
+
+| Syntax        | Description                   | Example              |
+| ------------- | ----------------------------- | -------------------- |
+| `TYPE[]`      | Input array                   | `int[] 1,2,3,4,5`    |
+| `out:TYPE[N]` | Output array of N elements    | `out:int[10]`        |
+| `out:TYPE[N]` | Output array with initializer | `out:int[4] 4,3,2,1` |
+
+### Callback Types
+
+| Keyword    | Description                 | Example              |
+| ---------- | --------------------------- | -------------------- | --- | ------ |
+| `func`     | Function pointer (callback) | `func 'int(int,int){ | a,b | a+b}'` |
+| `callback` | Alias for `func`            | Same as above        |
 
 ### Argument Syntax
 
