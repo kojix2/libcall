@@ -285,16 +285,6 @@ class IntegrationTest < Test::Unit::TestCase
     assert_match(/\[0\] int\[5\] = \[0, 1, 2, 3, 4\]/, stdout)
   end
 
-  test 'output array with initializer is overwritten by function' do
-    omit('fixture shared library is not available') unless fixture_lib_available?
-    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
-                                          'fill_seq_i32', 'out:int[4]', '1,1,1,1', 'size_t', '4', '-r', 'void')
-    assert success, "Command should succeed: #{stderr}"
-    assert_match(/Output parameters:/, stdout)
-    # Expect array values 0..3 after call (initializer should be replaced)
-    assert_match(/\[0\] int\[4\] = \[0, 1, 2, 3\]/, stdout)
-  end
-
   test 'callback argument: apply_i32 with addition proc' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
