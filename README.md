@@ -205,7 +205,7 @@ libcall -lSystem arc4random_buf out:uchar[16] size_t 16 -r void
 
 Pass a C function pointer via a Ruby callback. Use `func` or `callback` with a quoted spec:
 
-- Syntax: `func 'RET(ARG,ARG,...){|a, b, ...| ruby_code }'` (alias: `callback ...`)
+- Syntax: `func 'RET(TYPE name, TYPE name, ...){ ruby_code }'` (alias: `callback ...`)
 - Inside the block, helper methods from `Libcall::Fiddley::DSL` are available:
   - `int(ptr)`, `double(ptr)`, `cstr(ptr)` read values from pointers
   - `read(:type, ptr)` reads any supported type; `ptr(addr)` makes a pointer
@@ -216,7 +216,7 @@ Quick examples
 # Fixture function: int32_t apply_i32(int32_t, int32_t, int32_t (*)(int32_t,int32_t))
 libcall -ltest -L test/fixtures/libtest/build apply_i32 \
 	int 3 int 5 \
-	func 'int(int,int){|a,b| a + b}' \
+	func 'int(int a,int b){ a + b }' \
 	-r i32
 # => 8
 ```

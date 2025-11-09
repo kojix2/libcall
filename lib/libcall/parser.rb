@@ -57,43 +57,43 @@ module Libcall
       # Callback value: signature + Ruby block
       if type_sym == :callback
         src = strip_quotes(token.to_s)
-        # ret(arglist){ ... } where ret token is any non-space, non-'(' sequence
         m = src.match(/\A\s*([^(\s]+)\s*\(([^)]*)\)\s*(\{.*\})\s*\z/m)
         raise Error, "Invalid callback spec: #{src}" unless m
 
-        ret_s = m[1].strip
-        args_s = m[2].strip
-        block_src = m[3]
+        ret_s, args_s, block_src = m.captures.map(&:strip)
+        if block_src =~ /\{\s*\|/
+          raise Error,
+                'Explicit block parameters are not supported; name your C args and omit block params (e.g., int(int a,int b){a+b})'
+        end
 
         ret_sym = TypeMap.lookup(ret_s)
         raise Error, "Unknown callback return type: #{ret_s}" unless ret_sym
 
-        arg_syms = []
-        arg_names = []
+        pairs = if args_s.empty?
+                  []
+                else
+                  args_s.split(',').map do |raw|
+                    a = raw.strip
+                    if (mm = a.match(/\A(.+?)\s+([A-Za-z_][A-Za-z0-9_]*)\z/))
+                      type_part = mm[1].strip
+                      name_part = mm[2]
+                    else
+                      type_part = a
+                      name_part = nil
+                    end
+                    sym = TypeMap.lookup(type_part)
+                    raise Error, "Unknown callback arg type: #{a}" unless sym
 
-        unless args_s.empty?
-          args_s.split(',').each do |raw|
-            a = raw.strip
-            # Allow optional parameter name after type: e.g., "void* pa" or "const void* pb"
-            if a =~ /\A(.+?)\s+([A-Za-z_][A-Za-z0-9_]*)\z/
-              type_part = Regexp.last_match(1).strip
-              name_part = Regexp.last_match(2)
-            else
-              type_part = a
-              name_part = nil
-            end
+                    [sym, name_part]
+                  end
+                end
 
-            sym = TypeMap.lookup(type_part)
-            raise Error, "Unknown callback arg type: #{a}" unless sym
-
-            arg_syms << sym
-            arg_names << name_part if name_part
+        arg_syms = pairs.map(&:first)
+        names_with_nils = pairs.map(&:last)
+        if !names_with_nils.empty? && names_with_nils.all?
+          block_src = block_src.sub(/\{\s*/) do
+            "{|#{names_with_nils.join(',')}| "
           end
-        end
-
-        # If all args have names and the block has no explicit parameters, inject them.
-        if !arg_names.empty? && arg_names.size == arg_syms.size && block_src !~ /\{\s*\|/
-          block_src = block_src.sub(/\{\s*/) { "{|#{arg_names.join(',')}| " }
         end
 
         return { kind: :callback, ret: ret_sym, args: arg_syms, block: block_src }

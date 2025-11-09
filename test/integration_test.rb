@@ -253,7 +253,7 @@ class IntegrationTest < Test::Unit::TestCase
   test 'callback argument: apply_i32 with addition proc' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
-                                          'apply_i32', 'int', '3', 'int', '5', 'func', "'int(int,int){|a,b| a+b}'", '-r', 'i32')
+                                          'apply_i32', 'int', '3', 'int', '5', 'func', "'int(int a,int b){a+b}'", '-r', 'i32')
     assert success, "Command should succeed: #{stderr}"
     assert_equal '8', stdout
   end
@@ -261,7 +261,7 @@ class IntegrationTest < Test::Unit::TestCase
   test 'callback alias keyword: apply_i32 with subtraction proc' do
     omit('fixture shared library is not available') unless fixture_lib_available?
     stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'),
-                                          'apply_i32', 'int', '10', 'int', '3', 'callback', "'int(int,int){|a,b| a-b}'", '-r', 'i32')
+                                          'apply_i32', 'int', '10', 'int', '3', 'callback', "'int(int a,int b){a-b}'", '-r', 'i32')
     assert success, "Command should succeed: #{stderr}"
     assert_equal '7', stdout
   end
@@ -277,7 +277,7 @@ class IntegrationTest < Test::Unit::TestCase
                                           'out:int[4]', '4,2,3,1',
                                           'size_t', '4',
                                           'size_t', '4',
-                                          'callback', "'int(void*,void*){|pa,pb| int(pa) <=> int(pb) }'",
+                                          'callback', "'int(void* pa, void* pb){ int(pa) <=> int(pb) }'",
                                           '-r', 'void')
     assert success, "Command should succeed: #{stderr}"
     assert_match(/Output parameters:/, stdout)

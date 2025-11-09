@@ -61,7 +61,7 @@ class ParserTest < Test::Unit::TestCase
   end
 
   test 'coerces callback spec with func keyword' do
-    spec = Libcall::Parser.coerce_value(:callback, "'int(int,int){|a,b| a+b}'")
+    spec = Libcall::Parser.coerce_value(:callback, "'int(int a,int b){a+b}'")
     assert_equal :callback, spec[:kind]
     assert_equal :int, spec[:ret]
     assert_equal %i[int int], spec[:args]
@@ -69,7 +69,7 @@ class ParserTest < Test::Unit::TestCase
   end
 
   test 'coerces callback spec with callback keyword' do
-    spec = Libcall::Parser.coerce_value(:callback, "'int(int,int){|a,b| a-b}'")
+    spec = Libcall::Parser.coerce_value(:callback, "'int(int a,int b){a-b}'")
     assert_equal :callback, spec[:kind]
     assert_equal :int, spec[:ret]
     assert_equal %i[int int], spec[:args]

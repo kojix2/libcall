@@ -46,19 +46,17 @@ class ParserEdgeCasesTest < Test::Unit::TestCase
     assert_match(/\{\|a,b\|/, cb[:block])
   end
 
-  test 'callback with explicit block params is not modified' do
+  test 'callback with explicit block params is rejected now' do
     token = 'int(void* a, void* b){|x,y| x }'
-    cb = Libcall::Parser.coerce_value(:callback, token)
-    assert_equal :int, cb[:ret]
-    assert_equal %i[voidp voidp], cb[:args]
-    assert_match(/\{\|x,y\| x \}/, cb[:block])
+    assert_raise(Libcall::Error) do
+      Libcall::Parser.coerce_value(:callback, token)
+    end
   end
 
-  test 'callback without names keeps block as-is' do
+  test 'callback without names cannot inject params (remains anonymous block)' do
     token = 'int(void*, void*){ foo }'
     cb = Libcall::Parser.coerce_value(:callback, token)
     assert_equal %i[voidp voidp], cb[:args]
-    # No injection because names are missing
     assert_no_match(/\{\|/, cb[:block])
   end
 end
