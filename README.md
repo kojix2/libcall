@@ -105,14 +105,10 @@ libcall supports multiple naming conventions for types, making it easy to work w
 
 ### Pointer Types
 
-| Type      | Description                | Usage                            |
-| --------- | -------------------------- | -------------------------------- |
-| `ptr`     | Generic pointer (void\*)   | For arbitrary memory addresses   |
-| `pointer` | Alias for `ptr`            | Same as `ptr`                    |
-| `voidp`   | Void pointer               | Same as `ptr`                    |
-| `string`  | C string argument (char\*) | For passing strings to functions |
-| `cstr`    | C string return (char\*)   | For return values only           |
-| `str`     | Alias for `string`         | Same as `string`                 |
+| Type                        | Description           | Usage                          |
+| --------------------------- | --------------------- | ------------------------------ |
+| `ptr` / `pointer` / `voidp` | Generic pointer (void*) | For arbitrary memory addresses |
+| `string` / `cstr` / `str`   | C string (char*)      | For passing/returning strings  |
 
 **Null pointer values**: Use `null`, `NULL`, `nil`, or `0` to pass a null pointer.
 
@@ -147,10 +143,10 @@ out:string    # Output string pointer (char**)
 
 ### Callback Types
 
-| Keyword    | Description                 | Example                          |
-| ---------- | --------------------------- | -------------------------------- |
+| Keyword    | Description                 | Example              |
+| ---------- | --------------------------- | -------------------- | --- | ------ |
 | `func`     | Function pointer (callback) | `func 'int(int a,int b){ a+b }'` |
-| `callback` | Alias for `func`            | Same as above                    |
+| `callback` | Alias for `func`            | Same as above        |
 
 ### Argument Syntax
 
