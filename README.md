@@ -147,10 +147,10 @@ out:string    # Output string pointer (char**)
 
 ### Callback Types
 
-| Keyword    | Description                 | Example              |
-| ---------- | --------------------------- | -------------------- | --- | ------ |
-| `func`     | Function pointer (callback) | `func 'int(int,int){ | a,b | a+b}'` |
-| `callback` | Alias for `func`            | Same as above        |
+| Keyword    | Description                 | Example                          |
+| ---------- | --------------------------- | -------------------------------- |
+| `func`     | Function pointer (callback) | `func 'int(int a,int b){ a+b }'` |
+| `callback` | Alias for `func`            | Same as above                    |
 
 ### Argument Syntax
 
