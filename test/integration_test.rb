@@ -103,7 +103,8 @@ class IntegrationTest < Test::Unit::TestCase
   test 'option ordering: interleaving --json between two arg pairs' do
     # Use add_i32 from fixture library if available, else skip
     omit('fixture shared library is not available') unless fixture_lib_available?
-    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'), 'add_i32', 'int', '10', '--json', 'int', '20', '-r', 'i32')
+    stdout, stderr, success = run_libcall('-ltest', '-L', File.join('test', 'fixtures', 'libtest', 'build'), 'add_i32',
+                                          'int', '10', '--json', 'int', '20', '-r', 'i32')
     assert success, "Command should succeed: #{stderr}"
     doc = JSON.parse(stdout)
     assert_equal 30, doc['result']
