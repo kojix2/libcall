@@ -125,19 +125,28 @@ module Libcall
       return Fiddle::TYPE_VOIDP if type_sym == :callback
 
       case type_sym
+      # Void type
       when :void then Fiddle::TYPE_VOID
+      # Integer types (8-bit)
       when :char then Fiddle::TYPE_CHAR
       when :uchar then Fiddle::TYPE_UCHAR
+      # Integer types (16-bit)
       when :short then Fiddle::TYPE_SHORT
       when :ushort then Fiddle::TYPE_USHORT
+      # Integer types (32-bit)
       when :int, :uint then Fiddle::TYPE_INT
+      # Integer types (platform-dependent)
       when :long, :ulong then Fiddle::TYPE_LONG
+      # Integer types (64-bit)
       when :long_long, :ulong_long then Fiddle::TYPE_LONG_LONG
+      # Floating point types
       when :float then Fiddle::TYPE_FLOAT
       when :double then Fiddle::TYPE_DOUBLE
-      when :voidp, :string then Fiddle::TYPE_VOIDP
+      # Pointer types
+      when :voidp, :pointer then Fiddle::TYPE_VOIDP
+      when :string then Fiddle::TYPE_VOIDP
+      # Special types
       when :size_t then Fiddle::TYPE_SIZE_T
-      when :pointer then Fiddle::TYPE_VOIDP
       else
         raise Error, "Unknown Fiddle type: #{type_sym}"
       end
@@ -146,14 +155,22 @@ module Libcall
     # Get the size in bytes for a type symbol
     def self.sizeof(type_sym)
       case type_sym
+      # Integer types (8-bit)
       when :char, :uchar then Fiddle::SIZEOF_CHAR
+      # Integer types (16-bit)
       when :short, :ushort then Fiddle::SIZEOF_SHORT
+      # Integer types (32-bit)
       when :int, :uint then Fiddle::SIZEOF_INT
+      # Integer types (platform-dependent)
       when :long, :ulong then Fiddle::SIZEOF_LONG
+      # Integer types (64-bit)
       when :long_long, :ulong_long then Fiddle::SIZEOF_LONG_LONG
+      # Floating point types
       when :float then Fiddle::SIZEOF_FLOAT
       when :double then Fiddle::SIZEOF_DOUBLE
-      when :voidp, :string, :pointer then Fiddle::SIZEOF_VOIDP
+      # Pointer types
+      when :voidp, :pointer, :string then Fiddle::SIZEOF_VOIDP
+      # Special types
       when :size_t then Fiddle::SIZEOF_SIZE_T
       else
         raise Error, "Cannot get size for type: #{type_sym}"
@@ -171,18 +188,26 @@ module Libcall
     # Read value from output pointer
     def self.read_output_pointer(ptr, type_sym)
       case type_sym
+      # Integer types (8-bit)
       when :char then ptr[0, Fiddle::SIZEOF_CHAR].unpack1('c')
       when :uchar then ptr[0, Fiddle::SIZEOF_CHAR].unpack1('C')
+      # Integer types (16-bit)
       when :short then ptr[0, Fiddle::SIZEOF_SHORT].unpack1('s')
       when :ushort then ptr[0, Fiddle::SIZEOF_SHORT].unpack1('S')
+      # Integer types (32-bit)
       when :int then ptr[0, Fiddle::SIZEOF_INT].unpack1('i')
       when :uint then ptr[0, Fiddle::SIZEOF_INT].unpack1('I')
+      # Integer types (platform-dependent)
       when :long then ptr[0, Fiddle::SIZEOF_LONG].unpack1('l!')
       when :ulong then ptr[0, Fiddle::SIZEOF_LONG].unpack1('L!')
+      # Integer types (64-bit)
       when :long_long then ptr[0, Fiddle::SIZEOF_LONG_LONG].unpack1('q')
       when :ulong_long then ptr[0, Fiddle::SIZEOF_LONG_LONG].unpack1('Q')
+      # Floating point types
       when :float then ptr[0, Fiddle::SIZEOF_FLOAT].unpack1('f')
       when :double then ptr[0, Fiddle::SIZEOF_DOUBLE].unpack1('d')
+      # Pointer types
+      when :voidp then format('0x%x', ptr[0, Fiddle::SIZEOF_VOIDP].unpack1('J'))
       when :string
         addr = ptr[0, Fiddle::SIZEOF_VOIDP].unpack1('J')
         return '(null)' if addr.zero?
@@ -192,7 +217,6 @@ module Libcall
         rescue StandardError
           format('0x%x', addr)
         end
-      when :voidp then format('0x%x', ptr[0, Fiddle::SIZEOF_VOIDP].unpack1('J'))
       else
         raise Error, "Cannot read output value for type: #{type_sym}"
       end
@@ -225,20 +249,28 @@ module Libcall
 
     def self.pack_template(base_type)
       case base_type
+      # Integer types (8-bit)
       when :char then 'c'
       when :uchar then 'C'
+      # Integer types (16-bit)
       when :short then 's'
       when :ushort then 'S'
+      # Integer types (32-bit)
       when :int then 'i'
       when :uint then 'I'
+      # Integer types (platform-dependent)
       when :long then 'l!'
       when :ulong then 'L!'
+      # Integer types (64-bit)
       when :long_long then 'q'
       when :ulong_long then 'Q'
+      # Floating point types
       when :float then 'f'
       when :double then 'd'
-      when :size_t then (Fiddle::SIZEOF_VOIDP == Fiddle::SIZEOF_LONG ? 'L!' : 'Q')
+      # Pointer types
       when :pointer, :voidp then 'J'
+      # Special types
+      when :size_t then (Fiddle::SIZEOF_VOIDP == Fiddle::SIZEOF_LONG ? 'L!' : 'Q')
       else
         raise Error, "Unsupported array base type: #{base_type}"
       end
