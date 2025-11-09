@@ -94,4 +94,30 @@ class ParserEdgeCasesTest < Test::Unit::TestCase
     assert_equal [], cb[:args]
     assert_no_match(/\{\|/, cb[:block])
   end
+
+  test 'callback with pointer asterisk separated from type' do
+    token = 'int(void *a, void *b){ int(a) <=> int(b) }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal :callback, cb[:kind]
+    assert_equal :int, cb[:ret]
+    assert_equal %i[voidp voidp], cb[:args]
+    assert_match(/\{\|a,b\|/, cb[:block])
+    assert_match(/int\(a\) <=> int\(b\)/, cb[:block])
+  end
+
+  test 'callback with mixed pointer styles' do
+    token = 'int(void* a, void *b){ int(a) + int(b) }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal :callback, cb[:kind]
+    assert_equal :int, cb[:ret]
+    assert_equal %i[voidp voidp], cb[:args]
+    assert_match(/\{\|a,b\|/, cb[:block])
+  end
+
+  test 'callback with excessive spaces around asterisk' do
+    token = 'int(void * a, void  *  b){ a <=> b }'
+    cb = Libcall::Parser.coerce_value(:callback, token)
+    assert_equal %i[voidp voidp], cb[:args]
+    assert_match(/\{\|a,b\|/, cb[:block])
+  end
 end

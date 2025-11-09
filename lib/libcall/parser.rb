@@ -73,16 +73,18 @@ module Libcall
                   []
                 else
                   args_s.split(',').map do |raw|
-                    a = raw.strip
-                    if (mm = a.match(/\A(.+?)\s+([A-Za-z_][A-Za-z0-9_]*)\z/))
+                    # Normalize pointer syntax: "void *a", "void * a", "void*a" → "void* a"
+                    normalized = raw.strip.gsub(/\s*\*\s*/, '* ').strip
+
+                    if (mm = normalized.match(/\A(.+?)\s+([A-Za-z_][A-Za-z0-9_]*)\z/))
                       type_part = mm[1].strip
                       name_part = mm[2]
                     else
-                      type_part = a
+                      type_part = normalized
                       name_part = nil
                     end
                     sym = TypeMap.lookup(type_part)
-                    raise Error, "Unknown callback arg type: #{a}" unless sym
+                    raise Error, "Unknown callback arg type: #{raw.strip}" unless sym
 
                     [sym, name_part]
                   end
