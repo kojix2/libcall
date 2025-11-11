@@ -19,6 +19,9 @@ module Libcall
 
     # Find library by name (e.g., "m" -> "/lib/x86_64-linux-gnu/libm.so.6")
     def find(lib_name)
+      # Normalize "-lfoo" style if passed as is (harmless if not present)
+      lib_name = lib_name.sub(/\A-l/, '')
+
       # If it's a path, return as-is
       return File.expand_path(lib_name) if path_like?(lib_name)
 
@@ -51,6 +54,30 @@ module Libcall
       # Try resolving the provided name using standard conventions
       resolved = resolve_by_name_in_paths(lib_name, search_paths)
       return resolved if resolved
+
+      # On macOS, try common library naming conventions for dyld shared cache
+      # (e.g., libSystem.B.dylib exists in cache but not on filesystem)
+      if Platform.darwin?
+        prefixes = lib_name.start_with?('lib') ? [''] : ['lib', '']
+        extensions = Platform.library_extensions
+
+        prefixes.product(extensions).each do |prefix, ext|
+          candidates = [
+            "#{prefix}#{lib_name}#{ext}",
+            "#{prefix}#{lib_name}.B#{ext}",  # Common pattern: libSystem.B.dylib
+            "#{prefix}#{lib_name}.A#{ext}"   # Also try .A variant
+          ]
+
+          candidates.each do |candidate|
+            # Test if dyld can resolve this name
+
+            Fiddle.dlopen(candidate)
+            return candidate # Return the name itself, let Fiddle resolve it
+          rescue Fiddle::DLError
+            next
+          end
+        end
+      end
 
       raise Error, "Library not found: #{lib_name} (searched in: #{search_paths.join(', ')})"
     end
@@ -134,11 +161,20 @@ module Libcall
         full_path = File.join(path, name)
         return File.expand_path(full_path) if File.file?(full_path)
 
-        # Check for versioned libraries (libm.so.6, etc.)
+        # Check for versioned libraries:
+        # - Linux: libm.so.6 => "#{name}.*"
+        # - macOS: libSystem.B.dylib, libcrypto.3.dylib => "#{prefix}#{lib_name}.*#{ext}"
         next if ext.empty?
 
-        matches = Dir.glob(File.join(path, "#{name}.*")).select { |f| File.file?(f) }
-        return File.expand_path(matches.first) unless matches.empty?
+        patterns = [
+          File.join(path, "#{name}.*"),
+          File.join(path, "#{prefix}#{lib_name}.*#{ext}")
+        ]
+
+        patterns.each do |pattern|
+          matches = Dir.glob(pattern).select { |f| File.file?(f) }
+          return File.expand_path(matches.first) unless matches.empty?
+        end
       end
 
       nil

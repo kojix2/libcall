@@ -349,4 +349,13 @@ class IntegrationTest < Test::Unit::TestCase
       assert_equal '30', stdout
     end
   end
+
+  # macOS-specific: ensure -lSystem works via dyld shared cache fallback
+  test "darwin: '-lSystem getpid' works (dyld cache)" do
+    omit('macOS only') unless RUBY_PLATFORM =~ /darwin/
+
+    stdout, stderr, success = run_libcall('-lSystem', 'getpid', '-r', 'int')
+    assert success, "Command should succeed: #{stderr}"
+    assert_match(/\A\d+\z/, stdout, 'getpid should return a PID as an integer string')
+  end
 end
