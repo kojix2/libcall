@@ -85,6 +85,11 @@ module Libcall
                  end
 
       <<~BANNER
+
+        Program: libcall (Call C functions from the command line)
+        Version: #{Libcall::VERSION}
+        Source:  https://github.com/kojix2/libcall
+
         Usage: libcall [OPTIONS] <LIBRARY> <FUNCTION> (TYPE VALUE)...
 
         Call C functions in shared libraries from the command line.
@@ -95,14 +100,14 @@ module Libcall
           #{examples.lines.map { |line| line.chomp }.join("\n  ")}
 
         Options:
-          -l, --lib LIBRARY        Library name to search for (e.g., -lm for libm)
-          -L, --lib-path PATH      Add directory to library search path
-          -r, --ret TYPE           Return type (default: void)
-              --dry-run            Show what would be executed without calling
-              --json               Output result in JSON format
-              --verbose            Show detailed information
-          -h, --help               Show this help message
-          -v, --version            Show version information
+          -l, --lib LIBRARY    Library name to search for (e.g., -lm for libm)
+          -L, --lib-path PATH  Add directory to library search path
+          -r, --ret TYPE       Return type (default: void)
+              --dry-run        Show what would be executed without calling
+              --json           Output result in JSON format
+              --verbose        Show detailed information
+          -h, --help           Show this help message
+          -v, --version        Show version information
       BANNER
     end
 
